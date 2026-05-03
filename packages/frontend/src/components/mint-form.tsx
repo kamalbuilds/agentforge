@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload, CheckCircle2 } from "lucide-react";
+import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { keccak256, decodeEventLog } from "viem";
+import { AgentINFTAbi, addresses } from "@agentforge/shared";
+import type { Abi, Log } from "viem";
+
+const CHAIN_ID = 16602 as const;
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
 
 const mintSchema = z.object({
   name: z.string().min(1, "Agent name required").max(64),
@@ -17,10 +25,55 @@ const mintSchema = z.object({
 
 type MintFormData = z.infer<typeof mintSchema>;
 
+async function encryptFile(file: File): Promise<{ encryptedBlob: Blob; keyBytes: Uint8Array }> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+  const buffer = await file.arrayBuffer();
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, buffer);
+  const rawKey = await crypto.subtle.exportKey("raw", key);
+  const keyBytes = new Uint8Array(rawKey);
+  const combined = new Uint8Array(12 + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ciphertext), 12);
+  return { encryptedBlob: new Blob([combined], { type: "application/octet-stream" }), keyBytes };
+}
+
+async function uploadToGateway(blob: Blob, name: string): Promise<{ cid: string }> {
+  const formData = new FormData();
+  formData.append("file", blob, name);
+  const res = await fetch(`${GATEWAY_URL}/storage/upload`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Gateway upload failed: ${text}`);
+  }
+  const json = (await res.json()) as { cid?: string };
+  if (!json.cid) throw new Error("Gateway did not return a CID");
+  return { cid: json.cid };
+}
+
+const TRANSFER_EVENT_ABI = [
+  {
+    type: "event" as const,
+    name: "Transfer",
+    inputs: [
+      { name: "from",    type: "address" as const, indexed: true },
+      { name: "to",      type: "address" as const, indexed: true },
+      { name: "tokenId", type: "uint256" as const, indexed: true },
+    ],
+  },
+] as const;
+
 export function MintForm() {
+  const router = useRouter();
+  const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<string | null>(null);
+  const [mintTxHash, setMintTxHash] = useState<`0x${string}` | undefined>();
+  const { isLoading: isMintConfirming } = useWaitForTransactionReceipt({ hash: mintTxHash });
+  const { writeContractAsync } = useWriteContract();
+  const isLoading = !!step;
 
   const {
     register,
@@ -50,32 +103,64 @@ export function MintForm() {
   };
 
   const onSubmit = async (data: MintFormData) => {
-    if (!file) {
-      toast.error("Please select a weight file");
-      return;
-    }
+    if (!file)         { toast.error("Please select a weight file"); return; }
+    if (!address)      { toast.error("Connect your wallet first"); return; }
+    if (!publicClient) { toast.error("No RPC client — check your network"); return; }
 
-    setIsLoading(true);
     try {
-      // Real flow:
-      // 1. Client-side AES-GCM 256-bit encryption
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt"]
-      );
-      const buffer = await file.arrayBuffer();
-      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, buffer);
+      setStep("Encrypting weights...");
+      const { encryptedBlob, keyBytes } = await encryptFile(file);
 
-      // 2. Upload to 0G Storage via gateway
-      // 3. AgentNFT.mint(to, name, description, storageRef)
-      // All steps throw NOT_IMPLEMENTED until contracts are deployed
-      throw new Error("NOT_IMPLEMENTED: waiting on AgentNFT contract deploy and 0G gateway");
+      setStep("Uploading to 0G Storage...");
+      const { cid: weightCID } = await uploadToGateway(encryptedBlob, `${data.name}.enc`);
+
+      setStep("Uploading metadata...");
+      const metaJson = JSON.stringify({ name: data.name, description: data.description ?? "", weightCID, created: Date.now() });
+      const metaBlob = new Blob([metaJson], { type: "application/json" });
+      const { cid: metadataCID } = await uploadToGateway(metaBlob, `${data.name}-meta.json`);
+
+      const sealedKeyHash = keccak256(keyBytes);
+
+      setStep("Sending mint transaction...");
+      const txHash = await writeContractAsync({
+        address: addresses[CHAIN_ID].AgentINFT,
+        abi: AgentINFTAbi as Abi,
+        functionName: "mint",
+        args: [address, weightCID, metadataCID, 0n, 0n, sealedKeyHash],
+        chainId: CHAIN_ID,
+      });
+      setMintTxHash(txHash);
+      setStep("Waiting for confirmation...");
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") throw new Error("Transaction reverted");
+
+      let newTokenId: bigint | undefined;
+      for (const log of receipt.logs as Log[]) {
+        try {
+          const decoded = decodeEventLog({
+            abi: TRANSFER_EVENT_ABI,
+            data: log.data,
+            topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+          });
+          if (decoded.eventName === "Transfer") {
+            const args = decoded.args as { from: string; to: string; tokenId: bigint };
+            if (args.to.toLowerCase() === address.toLowerCase()) {
+              newTokenId = args.tokenId;
+              break;
+            }
+          }
+        } catch { /* not this event */ }
+      }
+
+      toast.success("Agent minted successfully!");
+      reset();
+      setFile(null);
+      router.push(newTokenId !== undefined ? `/agents/${newTokenId.toString()}` : "/agents");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Mint failed");
     } finally {
-      setIsLoading(false);
+      setStep(null);
     }
   };
 
@@ -171,13 +256,21 @@ export function MintForm() {
           )}
         </div>
 
+        {/* Status indicator */}
+        {step && (
+          <div className="flex items-center gap-2 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-xl px-4 py-3">
+            <span className="w-2 h-2 rounded-full bg-[#7c3aed] animate-pulse shrink-0" />
+            <p className="text-xs font-mono text-[#7c3aed]">{step}</p>
+          </div>
+        )}
+
         {/* Submit */}
         <Button
           type="submit"
-          disabled={isLoading || !file}
+          disabled={isLoading || !file || isMintConfirming}
           className="w-full bg-[#7c3aed] hover:bg-[#5b21b6] text-white font-bold py-4 rounded-xl transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(124,58,237,0.35)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          {isLoading ? "Encrypting & Minting..." : "Mint Agent"}
+          {isLoading ? step : "Mint Agent"}
         </Button>
 
         <p className="text-xs text-[#6b7280] font-mono text-center">
