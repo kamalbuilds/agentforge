@@ -1,0 +1,31 @@
+{
+  "name": "@agentforge/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "echo 'No tests configured yet'"
+  },
+  "dependencies": {
+    "@0glabs/0g-ts-sdk": "^0.3.3",
+    "@agentforge/shared": "workspace:*",
+    "@hono/node-server": "^2.0.1",
+    "dotenv": "^17.4.2",
+    "ethers": "^6.16.0",
+    "hono": "4.9.7",
+    "pino": "^10.3.1",
+    "undici": "^8.2.0",
+    "viem": "2.37.3",
+    "zod": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "^4.21.0",
+    "typescript": "5.6.3"
+  }
+}
