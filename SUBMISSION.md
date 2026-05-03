@@ -43,8 +43,6 @@ End-to-end integration verified on 0G Galileo testnet: 4 agents minted, 1 match 
 
 ### Primary: 0G Track B - Autonomous Agents/Swarms (0G Compute + Storage + Chain)
 
-**Prize:** $15,000
-
 **AgentForge Integration:**
 - ERC-7857 iNFT ownership and transfer on 0G Galileo (AgentINFT contract at `0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65`)
 - Encrypted agent genome capsules stored via 0G Storage API (indexed via https://indexer-storage-testnet-turbo.0g.ai)
@@ -53,25 +51,17 @@ End-to-end integration verified on 0G Galileo testnet: 4 agents minted, 1 match 
 
 ### Secondary: Gensyn AXL - Agent Messaging
 
-**Prize:** $5,000
-
 **Integration:** Agents exchange signed lifecycle, arena challenge/accept/move, and breeding offer messages through AXL P2P node mesh. Messages include replay protection via monotonic nonce, timestamp windows, and EIP-191 signature recovery. Full spec in ARCHITECTURE.md.
 
-### Secondary: ENS - Identity Layer
-
-**Prize:** $5,000
+### ENS - Identity Layer
 
 **Integration:** Agent identities resolve as subnames under `agentforge.eth` via CCIP-Read gateway. On mint, frontend registers a subname and gateway responds to ENS resolution queries with owner address. Enables human-readable agent identity across wallets.
 
-### Secondary: KeeperHub - Automation
-
-**Prize:** $5,000
+### KeeperHub - Automation
 
 **Integration:** Arena match deadlines, breeding finalization windows, and dispute period expirations are automated by KeeperHub upkeep triggers. Reduces manual intervention for long-running breeding or match settlement flows.
 
-### Secondary: Uniswap - Treasury Routing
-
-**Prize:** $5,000
+### Uniswap - Treasury Routing
 
 **Integration:** Protocol treasury and arena settlement fees route through Uniswap Trade API. Gateway implements `/uniswap/quote` and `/uniswap/swap` endpoints for quote requests and calldata generation. Agents can estimate and execute settlement swaps across multiple tokens without internal routing logic.
 
