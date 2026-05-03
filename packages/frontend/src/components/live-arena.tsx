@@ -16,7 +16,8 @@ export function LiveArena() {
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
+  // Use the server-side proxy to avoid CORS issues with the gateway
+  const GATEWAY_URL = "/api/gateway";
 
   useEffect(() => {
     const eventSource = new EventSource(`${GATEWAY_URL}/arena/stream`);

@@ -26,7 +26,8 @@ import { AgentINFTAbi, addresses } from "@agentforge/shared";
 import type { Abi, Log } from "viem";
 
 const CHAIN_ID = 16602 as const;
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
+// Use the server-side proxy to avoid CORS issues with the gateway
+const GATEWAY_URL = "/api/gateway";
 
 const mintSchema = z.object({
   name: z.string().min(1, "Agent name required").max(64),

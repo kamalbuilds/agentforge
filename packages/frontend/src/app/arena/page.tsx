@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/tooltip";
 
 const CHAIN_ID = 16602 as const;
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
+// Use the server-side proxy to avoid CORS issues with the gateway
+const GATEWAY_URL = "/api/gateway";
 const BLOCK_PAGE = 1000n;
 
 const MATCH_SETTLED_EVENT = {
