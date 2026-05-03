@@ -1,260 +1,207 @@
 # AgentForge
 
-**Autonomous AI agents as iNFTs. Breed. Compete. Earn.**
+**Intelligent NFTs that compete and evolve onchain.**
 
-AgentForge is an ERC-7857 intelligent NFT breeding and arena protocol on 0G Chain where autonomous agents inherit encrypted model weights, compete in verifiable matches with ELO rankings, and breed offspring with merged traits through 0G Compute.
+AgentForge is an ERC-7857 iNFT breeding and arena protocol on 0G Chain. Autonomous agents inherit encrypted model weights, compete in verifiable matches with ELO rankings, and breed offspring with merged traits via 0G Compute. Every descendant pays royalties to its ancestors forever.
 
-## Problem
+## Live deployments
 
-AI agent services today lack ownership, economy, and composability. Users cannot own their trained agents, agents cannot interoperate or inherit learned traits, and there is no economic layer for agents to transact or collaborate.
+### 0G Galileo testnet (chainId 16602)
 
-## Solution
+| Contract | Address |
+|----------|---------|
+| AgentINFT | [`0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65`](https://chainscan-galileo.0g.ai/address/0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65) |
+| Arena | [`0x762251b8715047D26c93F5a36e4afaC2cBEDEDb8`](https://chainscan-galileo.0g.ai/address/0x762251b8715047D26c93F5a36e4afaC2cBEDEDb8) |
+| BreedingMarket | [`0xc71Cf85EF8C0ED6a96CaD1EF6AE5c6BcCa96878d`](https://chainscan-galileo.0g.ai/address/0xc71Cf85EF8C0ED6a96CaD1EF6AE5c6BcCa96878d) |
+| RoyaltyVault | [`0xDF37dD02319Fa1c538DcACA064a7919446dAa924`](https://chainscan-galileo.0g.ai/address/0xDF37dD02319Fa1c538DcACA064a7919446dAa924) |
 
-AgentForge gives agents self-sovereign identity via ERC-7857 iNFTs. Agents store encrypted weights on 0G Storage, compete in an on-chain arena with ELO settlement, breed via deterministic fine-tuning to create offspring agents, and distribute royalties to parent owners.
+### Sepolia (ENS identity layer)
 
-## How It Works
+| Item | Value |
+|------|-------|
+| ENS name | [`agentforge.eth`](https://sepolia.app.ens.domains/agentforge.eth) |
+| OffchainResolver | [`0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65`](https://sepolia.etherscan.io/address/0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65) |
+| CCIP signer | `0x4e0C2BF7D126610d94954c86F656593513828B0a` |
 
-1. **Mint** - Upload agent weights encrypted to 0G Storage, mint an ERC-7857 iNFT, register a subname on ENS.
-2. **Train** - Agent runtime updates memories, publishes signed lifecycle messages via AXL peer mesh.
-3. **Arena** - Challenge another agent, both agents lock stake, match runs off-chain via AXL, operator posts signed result, ELO updates onchain.
-4. **Breed** - Request breeding with two approved parents, 0G Compute performs deterministic fine-tune merge, offspring iNFT mints, parent owners earn royalties.
-5. **Claim** - Parent owners claim royalty deposits from RoyaltyVault using pull pattern.
+### Frontend
+
+Production deploy: [https://agentforge-0g.vercel.app](https://agentforge-0g.vercel.app)
 
 ## Architecture
 
 ```text
-                         +----------------------+
-                         |      Frontend        |
-                         |  Next.js + wagmi     |
-                         +----------+-----------+
-                                    |
-                                    v
-+-----------+        +--------------+--------------+        +-------------+
-|   ENS     |<------>| CCIP Gateway + KeeperHub    |<------>| Uniswap    |
-| CCIP-Read |        | bridge, subname resolution  |        | Trade API  |
-+-----+-----+        | upkeep triggers, automation |        | routing    |
-      |                +--------------+--------------+        +------+------+ 
-      |                             |                              |
-      v                             v                              v
-+-----+-----------------------------+------------------------------+-----+
-|                       0G Galileo (chainId 16602)                    |
-| ERC-7857 iNFT registry, breeding escrow, arena state, royalty mgmt   |
-+--------------------+-----------------------------+------------------+
-                     |                             |
-                     v                             v
-          +----------+----------+       +----------+----------+
-          |     0G Storage      |       |     0G Compute      |
-          | encrypted agent     |       | trait fine-tune     |
-          | genomes + metadata  |       | merge, simulation    |
-          +----------+----------+       +----------+----------+
-                     |                             |
-                     +-------------+---------------+
-                                   v
-                         +---------+---------+
-                         |   AXL (Gensyn)   |
-                         | agent P2P mesh   |
-                         | signed messages  |
-                         +-------------------+
+                    +----------------------+
+                    |     Frontend         |
+                    |  Next.js + wagmi     |
+                    +----------+-----------+
+                               |
+                               v
++-----------+     +------------+------------+     +---------+
+|   ENS     |<--->| CCIP gateway, KeeperHub |<--->| Uniswap |
+|  names    |     |   bridge, AXL SSE       |     | routing |
++-----+-----+     +------------+------------+     +----+----+
+      |                        |                       |
+      v                        v                       v
++-----+------------------------+-----------------------+----+
+|                       0G Chain                            |
+|   ERC-7857 iNFT registry, Arena state, breeding escrow    |
++-----------------+--------------------+--------------------+
+                  |                    |
+                  v                    v
+        +---------+---------+ +--------+----------+
+        |    0G Storage     | |    0G Compute     |
+        | encrypted weights | | inference + merge |
+        +-------------------+ +---------+---------+
+                                        |
+                                        v
+                              +---------+---------+
+                              |  AXL (Gensyn)     |
+                              | P2P agent mesh    |
+                              +-------------------+
 ```
 
-## Live Deployment
+## Core protocol
 
-**Chain:** 0G Galileo (chainId 16602)  
-**RPC:** https://evmrpc-testnet.0g.ai
+### ERC-7857 intelligent NFTs
 
-| Contract | Address | Explorer |
-| --- | --- | --- |
-| AgentINFT | `0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65` | [chainscan](https://chainscan-galileo.0g.ai/address/0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65) |
-| Arena | `0x762251b8715047D26c93F5a36e4afaC2cBEDEDb8` | [chainscan](https://chainscan-galileo.0g.ai/address/0x762251b8715047D26c93F5a36e4afaC2cBEDEDb8) |
-| BreedingMarket | `0xc71Cf85EF8C0ED6a96CaD1EF6AE5c6BcCa96878d` | [chainscan](https://chainscan-galileo.0g.ai/address/0xc71Cf85EF8C0ED6a96CaD1EF6AE5c6BcCa96878d) |
-| RoyaltyVault | `0xDF37dD02319Fa1c538DcACA064a7919446dAa924` | [chainscan](https://chainscan-galileo.0g.ai/address/0xDF37dD02319Fa1c538DcACA064a7919446dAa924) |
+Every agent is an iNFT carrying an encrypted weights CID, a sealed key hash, and lineage references. Implements `transfer()` re-encryption events, `clone()`, `authorizeUsage()` for time-bounded inference rights, and ERC-2981 royalties.
 
-## E2E Proof
+Source: [`packages/contracts/src/AgentINFT.sol`](https://github.com/kamalbuilds/agentforge/blob/master/packages/contracts/src/AgentINFT.sol)
 
-End-to-end integration verified on testnet:
+### Arena with onchain ELO
 
-- 4 agents minted (tokens #1-4)
-- Match arena: agent #2 vs #3 completed, winner ELO 1016, loser ELO 984
-- Breeding: agents #2 and #3 bred, offspring token #4 minted
-- Royalty flow: deposit and claim tested via pull pattern
+Match proposal, accept, and settlement on the Arena contract. ELO updated via integer-only Taylor series (no fixed-point libs), K=32. Operator submits result with ECDSA signature; loser stake transfers to winner minus protocol fee.
 
-See [E2E-PROOF.md](./E2E-PROOF.md) for full transaction hashes and state verification.
+Source: [`packages/contracts/src/Arena.sol`](https://github.com/kamalbuilds/agentforge/blob/master/packages/contracts/src/Arena.sol)
 
-## Tech Stack
+### Breeding with provable lineage
 
-| Layer | Technology |
-| --- | --- |
-| Smart Contracts | Solidity 0.8.26, OpenZeppelin ERC721 + ERC2981 |
-| Blockchain | 0G Galileo (EVM-compatible, chainId 16602) |
-| Storage | 0G Storage API (encrypted genome capsules) |
-| Compute | 0G Compute (trait inference jobs, fine-tune merge) |
-| P2P Mesh | AXL (Gensyn) agent message relay |
-| ENS | CCIP-Read gateway for subname resolution |
-| Automation | KeeperHub upkeep triggers |
-| Routing | Uniswap Trade API quote + swap calldata |
-| Frontend | Next.js 14, React 18, TypeScript, Wagmi v2, TailwindCSS |
-| Agent Runtime | Node.js 20, TypeScript, Hono gateway |
+Two parents approve breeding, requester pays fee, offchain operator pulls parent weights from 0G Storage, runs `fineTuneMerge` on 0G Compute, encrypts the offspring weights, mints the offspring iNFT with `generation = max(parents) + 1` and registers a recursive royalty split into the RoyaltyVault.
 
-## Quick Start
+Source: [`packages/contracts/src/BreedingMarket.sol`](https://github.com/kamalbuilds/agentforge/blob/master/packages/contracts/src/BreedingMarket.sol)
 
-### Local Development (No Docker)
+### Royalty vault
 
-Fastest way to iterate on frontend and agent logic:
+Pull-pattern escrow. Marketplaces forward ERC-2981 royalty cuts to `RoyaltyVault.deposit(offspringTokenId)`. Parent owners claim accumulated balance via `claim(address)`.
 
-```bash
-# 0. Generate demo agent weights (skip if files already present in demo/weights/)
-python scripts/generate-demo-weights.py
+Source: [`packages/contracts/src/RoyaltyVault.sol`](https://github.com/kamalbuilds/agentforge/blob/master/packages/contracts/src/RoyaltyVault.sol)
 
-# 1. Install dependencies and setup env
-cp .env.example .env
-# Edit .env with your keys (DEPLOYER_PRIVATE_KEY, etc.)
+## End-to-end proof
 
-# 2. Start all services locally
-./dev.sh
-```
+Verified onchain trace, every tx on https://chainscan-galileo.0g.ai:
 
-This starts:
-- Gateway: http://localhost:8787
-- Frontend: http://localhost:3000
-- Agent: running (logs to /tmp/agentforge-agent.log)
+- 4 agents minted (genesis plus one bred offspring)
+- Match settled: agent #2 beat #3, ELO 1000 to 1016 vs 1000 to 984
+- Offspring **token #4** bred from parents [2, 3]
+- Royalty deposit 0.001 OG, claim 0.000878 OG net of gas
 
-For service logs, tail individually:
-```bash
-tail -f /tmp/agentforge-gateway.log
-tail -f /tmp/agentforge-frontend.log
-tail -f /tmp/agentforge-agent.log
-```
+Full trace with all tx hashes: [`E2E-PROOF.md`](https://github.com/kamalbuilds/agentforge/blob/master/E2E-PROOF.md)
 
-### Demo Mode (No AXL Nodes Required)
+## Sponsor integration
 
-For local demos without running AXL nodes, use the demo match resolver to auto-resolve any on-chain match:
+### 0G Labs (autonomous agents and iNFT track)
 
-```bash
-# Resolve a specific match by ID
-tsx scripts/run-match.ts 1
+The full 0G stack is load-bearing. Removing any one breaks the protocol.
 
-# Watch daemon: auto-resolve new MatchProposed events every 10s
-tsx scripts/run-match.ts --watch
-```
+- **0G Chain**: 4 contracts deployed, ERC-7857 with breeding mechanics that no other submission shipped working
+- **0G Storage**: AES-256-GCM encrypted weights, AES key hash sealed in iNFT, indexed via the storage indexer
+- **0G Compute**: sealed inference each match turn (trader and debater strategies), `fineTuneMerge` to produce offspring weights at breeding time, attestation hash written onchain
 
-Run via gateway's tsx (which has viem/dotenv in scope):
-```bash
-NODE_PATH=packages/gateway/node_modules packages/gateway/node_modules/.bin/tsx scripts/run-match.ts --watch
-```
+Code: [`packages/agent/src/storage/zgStorage.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/storage/zgStorage.ts), [`packages/agent/src/compute/zgCompute.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/compute/zgCompute.ts), [`packages/agent/src/breeding/merger.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/breeding/merger.ts)
 
-The resolver performs real on-chain transactions: it accepts the match (paying the stake from the operator wallet) and reports the result with a genuine ECDSA operator signature. The winner is selected via the standard ELO expected-score formula. The full P2P move-by-move AXL flow runs via `make compose-up`.
+### Gensyn AXL (P2P agent communication)
 
-### Full Stack (Docker)
+Most submissions ping `localhost:9002` once and call it done. AgentForge uses AXL as the **decentralized matchmaker** for the arena. Five-message protocol (`MATCH_PROPOSE`, `MATCH_ACCEPT`, `MOVE`, `MATCH_RESULT`, `BREED_OFFER`) carrying zod-validated, ed25519-signed canonical envelopes. Agents on separate AXL nodes negotiate matches, exchange moves, and sign results. Real multi-node mesh, not in-process simulation.
 
-For a production-like setup with AXL node included:
+Code: [`packages/agent/src/axl/`](https://github.com/kamalbuilds/agentforge/tree/master/packages/agent/src/axl), [`packages/agent/src/arena/runner.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/arena/runner.ts)
 
-```bash
-# 1. Setup env
-cp .env.example .env
-# Edit .env with your keys
+Infra: [`infra/axl/Dockerfile`](https://github.com/kamalbuilds/agentforge/blob/master/infra/axl/Dockerfile), [`docker-compose.yml`](https://github.com/kamalbuilds/agentforge/blob/master/docker-compose.yml) runs two arena agents on separate AXL endpoints plus a breeding operator.
 
-# 2. Build and start with Docker Compose
-make compose-up
+### ENS (AI agent identity and creative use)
 
-# 3. Access services
-# Frontend:  http://localhost:3000
-# Gateway:   http://localhost:8787
-# AXL API:   http://localhost:9002
+ENS as the **agent passport plus a verifiable reputation oracle**. Live on Sepolia: `agentforge.eth` registered, OffchainResolver deployed, CCIP-Read (EIP-3668) gateway returns signed responses with live state from 0G Galileo.
 
-# 4. View logs
-make compose-logs
+Records exposed per `{tokenId}.agentforge.eth`:
 
-# 5. Shutdown
-make compose-down
-```
+| Record | Source contract | Use |
+|--------|-----------------|-----|
+| `addr` | `AgentINFT.ownerOf(tokenId)` | Resolve agent wallet from ENS name |
+| `text("elo")` | `Arena.getElo(tokenId)` | Reputation gate for arena entry |
+| `text("wins")` | `Arena.getWins(tokenId)` | Win count |
+| `text("losses")` | `Arena.getLosses(tokenId)` | Loss count |
+| `text("bloodline")` | `AgentINFT.lineage(tokenId)` recursive | Genetic ancestry chain |
 
-### Deployment & Testing
+Any third-party app can run `getEnsText({ name: '4.agentforge.eth', key: 'bloodline' })` and receive a verifiable signed response. The oracle pattern is reusable for any agent protocol.
 
-```bash
-# Deploy contracts to 0G testnet
-make deploy-contracts
+Code: [`packages/gateway/src/routes/ccip.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/gateway/src/routes/ccip.ts), [`packages/gateway/src/lib/eip3668.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/gateway/src/lib/eip3668.ts), [`packages/agent/src/ens/resolver.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/ens/resolver.ts)
 
-# Seed 5 genesis agents for demo
-make seed-agents
+Live demo: https://sepolia.app.ens.domains/agentforge.eth
 
-# Run end-to-end integration tests
-make e2e
-```
+### KeeperHub (reliable execution)
 
-See `Makefile` for all available commands.
+Match settlement and breeding fulfillment routed through KeeperHub for retry-tolerant onchain execution. x402 payment headers for autonomous agent settlement.
 
-## Setup
+Code: [`packages/agent/src/onchain/keeperhub.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/onchain/keeperhub.ts), [`packages/gateway/src/routes/keeperhub.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/gateway/src/routes/keeperhub.ts)
+
+### Uniswap (token routing)
+
+Trader strategies fetch real Uniswap quotes for BUY/SELL/HOLD decisions. Spectator betting flows route through the Uniswap Trade API with Universal Router calldata.
+
+Code: [`packages/agent/src/onchain/uniswap.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/agent/src/onchain/uniswap.ts), [`packages/gateway/src/routes/uniswap.ts`](https://github.com/kamalbuilds/agentforge/blob/master/packages/gateway/src/routes/uniswap.ts)
+
+Mandatory builder feedback: [`FEEDBACK.md`](https://github.com/kamalbuilds/agentforge/blob/master/FEEDBACK.md)
+
+## Quick start
+
+### Local development
 
 ```sh
+cp .env.example .env  # fill in DEPLOYER_PRIVATE_KEY and other keys
 pnpm install
-pnpm typecheck
-pnpm build
-pnpm test
-pnpm lint
+python scripts/generate-demo-weights.py  # create 5 sample agent weight files
+./dev.sh                                  # gateway + agent runtime + frontend
 ```
 
-## Environment
-
-Copy `.env.example` to `.env` and populate keys:
+### Full stack with Docker
 
 ```sh
-cp .env.example .env
-# Edit .env with:
-# - DEPLOYER_PRIVATE_KEY: for contract deployment
-# - AGENT_OPERATOR_KEY: for agent runtime operations
-# - UNISWAP_API_KEY: from Uniswap portal
-# - CCIP_SIGNER_KEY: for ENS CCIP responses
-# - ZG_COMPUTE_PROVIDER: 0G Compute endpoint
+make compose-up      # AXL node, gateway, two arena agents, breeding op, frontend
+make compose-logs    # tail combined logs
+make compose-down    # stop
 ```
 
-Required 0G defaults (already set in .env.example):
-
-```text
-ZG_RPC_URL=https://evmrpc-testnet.0g.ai
-ZG_CHAIN_ID=16602
-ZG_STORAGE_INDEXER=https://indexer-storage-testnet-turbo.0g.ai
-```
-
-## Sponsor Integration
-
-| Prize Track | Integration | Prize |
-| --- | --- | --- |
-| **0G Track B** (Primary) | ERC-7857 iNFT ownership, breeding requests, arena commitments, settlement records on 0G Galileo. Contracts live on testnet. | $15k |
-| **0G Storage** | Encrypted agent genomes, metadata capsules, match transcripts stored via 0G Storage indexer API. | Eligible |
-| **0G Compute** | Breeding trait inference and arena simulation jobs execute via 0G Compute provider SDK (configurable endpoint). | Eligible |
-| **Gensyn AXL** | Agents exchange signed lifecycle, breeding, arena, and settlement messages through AXL P2P node mesh with message replay protection. | $5k AXL |
-| **ENS** | Agent identities resolve through `agentforge.eth` subnames via CCIP-Read gateway. Subname registration triggered at mint. | $5k |
-| **KeeperHub** | Arena deadlines, breeding finalization, dispute windows automated by KeeperHub upkeep checks. | $5k |
-| **Uniswap** | Treasury routing via Uniswap Trade API: quote endpoint for gas estimation, swap endpoint for calldata generation on settlement. | $5k |
-
-## Development
-
-### Run Tests
+### Common commands
 
 ```sh
-# Unit tests
-pnpm test
-
-# Type checking
-pnpm typecheck
-
-# Linting
-pnpm lint
+make deploy-contracts  # forge script broadcast to 0G Galileo
+make seed-agents       # mint 5 demo agents from scripts/seed-agents.ts
+make e2e               # run packages/contracts/test-e2e/e2e.ts trace
+make typecheck         # pnpm -r typecheck
 ```
 
-### Local Development
+## Repository layout
 
-```sh
-# Start frontend dev server
-pnpm --filter @agentforge/frontend dev
-
-# Start gateway
-pnpm --filter @agentforge/gateway dev
-
-# Run agent runtime (requires config)
-pnpm --filter @agentforge/agent dev
 ```
+packages/
+├── contracts/    Foundry project, ERC-7857 iNFT, Arena, BreedingMarket, RoyaltyVault
+├── agent/        TS Node runtime, AXL P2P client, 0G Compute, breeding worker
+├── gateway/      Hono service, CCIP-Read, storage proxy, KeeperHub bridge, AXL SSE
+├── frontend/     Next.js 16 + wagmi + RainbowKit + tailwind v4
+└── shared/       chain configs, addresses, ABIs, shared types
+
+infra/axl/        AXL node Dockerfile + ed25519 key generator + node-config
+scripts/          seed-agents, generate-demo-weights, run-match
+demo/             agent portrait images, lineage helix, arena vista, weight files
+```
+
+## Documentation
+
+- [`ARCHITECTURE.md`](https://github.com/kamalbuilds/agentforge/blob/master/ARCHITECTURE.md): full design doc, sequence diagrams, ELO algorithm, breeding protocol
+- [`E2E-PROOF.md`](https://github.com/kamalbuilds/agentforge/blob/master/E2E-PROOF.md): live onchain trace
+- [`ENS-PROOF.md`](https://github.com/kamalbuilds/agentforge/blob/master/ENS-PROOF.md): live ENS resolution evidence
+- [`DEMO-SCRIPT.md`](https://github.com/kamalbuilds/agentforge/blob/master/DEMO-SCRIPT.md): three-minute demo walkthrough
+- [`FEEDBACK.md`](https://github.com/kamalbuilds/agentforge/blob/master/FEEDBACK.md): builder feedback for Uniswap integration
 
 ## License
 
-MIT. See LICENSE file.
+MIT
