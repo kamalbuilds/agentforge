@@ -9,18 +9,17 @@ services:
     container_name: agentforge-axl
     ports:
       - "9001:9001"  # P2P port
-      - "9002:9002"  # HTTP API port
-    volumes:
-      - ./infra/axl/private.pem:/app/private.pem
+      - "9002:9002"  # HTTP API port (127.0.0.1 inside container)
+      - "9000:9000"  # socat forwarder -> AXL HTTP API for inter-container access
     environment:
       - LOG_LEVEL=info
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:9002/health"]
-      interval: 30s
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:9002/topology"]
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 5s
+      retries: 5
+      start_period: 15s
 
   # Gateway - CCIP + ENS + KeeperHub + Uniswap bridge
   gateway:
@@ -37,7 +36,7 @@ services:
       - NODE_ENV=development
       - PORT=8787
       - LOG_LEVEL=info
-      - AXL_NODE_URL=http://axl-node:9002
+      - AXL_NODE_URL=http://axl-node:9000
       - CCIP_SIGNER_KEY=${CCIP_SIGNER_KEY}
       - KEEPERHUB_API_KEY=${KEEPERHUB_API_KEY}
       - KEEPERHUB_BASE_URL=${KEEPERHUB_API_URL:-https://api.keeperhub.com}
@@ -47,11 +46,11 @@ services:
       - RPC_URL_SEPOLIA=${SEPOLIA_RPC_URL}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8787/health"]
-      interval: 30s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8787/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 5s
+      retries: 5
+      start_period: 10s
 
   # Agent Arena Trader - Strategy=trader, TokenId=2
   agent-arena:
@@ -67,7 +66,7 @@ services:
       - LOG_LEVEL=info
       - STRATEGY=trader
       - AGENT_TOKEN_ID=2
-      - AXL_NODE_URL=http://axl-node:9002
+      - AXL_NODE_URL=http://axl-node:9000
       - GATEWAY_URL=http://gateway:8787
       - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
       - ZG_RPC_URL=${ZG_RPC_URL}
@@ -91,7 +90,7 @@ services:
       - LOG_LEVEL=info
       - STRATEGY=debater
       - AGENT_TOKEN_ID=3
-      - AXL_NODE_URL=http://axl-node:9002
+      - AXL_NODE_URL=http://axl-node:9000
       - GATEWAY_URL=http://gateway:8787
       - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
       - ZG_RPC_URL=${ZG_RPC_URL}
@@ -114,7 +113,7 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=info
       - BREEDING_OPERATOR=true
-      - AXL_NODE_URL=http://axl-node:9002
+      - AXL_NODE_URL=http://axl-node:9000
       - GATEWAY_URL=http://gateway:8787
       - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
       - ZG_RPC_URL=${ZG_RPC_URL}
@@ -138,11 +137,11 @@ services:
       - gateway
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
 networks:
   default:
