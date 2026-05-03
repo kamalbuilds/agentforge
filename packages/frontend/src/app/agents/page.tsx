@@ -249,6 +249,10 @@ export default function AgentsPage() {
         className="pointer-events-none fixed inset-0 z-0"
         style={{ background: "radial-gradient(ellipse 60% 30% at 80% 15%, rgba(124,58,237,0.05) 0%, transparent 55%)" }}
       />
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ backgroundImage: "url('/agents/lineage-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.05, mixBlendMode: "overlay" }}
+      />
 
       <Nav />
 

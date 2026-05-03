@@ -233,6 +233,10 @@ export default function ProfilePage() {
         className="pointer-events-none fixed inset-0 z-0"
         style={{ background: "radial-gradient(ellipse 50% 30% at 50% 0%, rgba(16,185,129,0.04) 0%, transparent 55%)" }}
       />
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ backgroundImage: "url('/profile/royalty-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.05, mixBlendMode: "overlay" }}
+      />
 
       <Nav />
 

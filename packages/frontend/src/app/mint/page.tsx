@@ -41,6 +41,10 @@ export default function MintPage() {
         className="pointer-events-none fixed inset-0 z-0"
         style={{ background: "radial-gradient(ellipse 50% 35% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 60%)" }}
       />
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ backgroundImage: "url('/mint/encrypt.jpg')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.06, mixBlendMode: "overlay" }}
+      />
 
       <Nav />
 
