@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,36 +14,222 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConnectButton } from "@/components/connect-button";
-import { AgentCard } from "@/components/agent-card";
-import { Wallet, Gift, Plus, Dna } from "lucide-react";
+import { Wallet, Gift, Plus, Dna, Cpu } from "lucide-react";
 import { toast } from "sonner";
+import { useAccount, usePublicClient, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { AgentINFTAbi, ArenaAbi, RoyaltyVaultAbi, addresses } from "@agentforge/shared";
+import type { Abi } from "viem";
+import { formatEther } from "viem";
+
+const CHAIN_ID = 16601 as const;
+
+interface OwnedAgent {
+  tokenId: bigint;
+  elo: number;
+  wins: number;
+  losses: number;
+  generation: number;
+}
+
+function OwnedAgentCard({ agent }: { agent: OwnedAgent }) {
+  const eloPercent = Math.min(100, Math.max(0, ((agent.elo - 800) / 2400) * 100));
+  return (
+    <Link href={`/agents/${agent.tokenId.toString()}`}>
+      <div className="glass-card rounded-xl p-5 hover:-translate-y-[2px] transition-all duration-200 cursor-pointer">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="hex-clip w-12 h-12 bg-gradient-to-br from-[#7c3aed]/30 to-[#dc2626]/30 flex items-center justify-center flex-shrink-0">
+            <Cpu className="w-5 h-5 text-[#7c3aed]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-[#ededed] font-mono text-sm">
+                #{agent.tokenId.toString()}
+              </p>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20">
+                Gen {agent.generation}
+              </span>
+            </div>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-[#ededed] font-bold font-mono">{agent.elo}</p>
+            <p className="text-xs text-[#6b7280] font-mono">ELO</p>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${eloPercent}%`,
+                background: "linear-gradient(90deg, #7c3aed, #dc2626)",
+              }}
+            />
+          </div>
+          <div className="flex gap-4 text-xs text-[#6b7280] font-mono">
+            <span>W: <span className="text-[#10b981] font-bold">{agent.wins}</span></span>
+            <span>L: <span className="text-[#dc2626] font-bold">{agent.losses}</span></span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function OwnedAgentsSection({ address }: { address: `0x${string}` }) {
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
+  const [tokenIds, setTokenIds] = useState<bigint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!publicClient || !address) return;
+    setLoading(true);
+    publicClient
+      .getLogs({
+        address: addresses[CHAIN_ID].AgentINFT,
+        event: {
+          type: "event",
+          name: "Transfer",
+          inputs: [
+            { name: "from", type: "address", indexed: true },
+            { name: "to", type: "address", indexed: true },
+            { name: "tokenId", type: "uint256", indexed: true },
+          ],
+        } as const,
+        args: { to: address },
+        fromBlock: 0n,
+        toBlock: "latest",
+      })
+      .then(async (logs) => {
+        const candidateIds = logs
+          .map((l) => (l.args as { tokenId?: bigint }).tokenId)
+          .filter((id): id is bigint => id !== undefined);
+
+        // Filter to currently owned (check ownerOf for each)
+        const ownerResults = await Promise.all(
+          candidateIds.map((id) =>
+            publicClient.readContract({
+              address: addresses[CHAIN_ID].AgentINFT,
+              abi: AgentINFTAbi as Abi,
+              functionName: "ownerOf",
+              args: [id],
+            }).catch(() => null)
+          )
+        );
+        const owned = candidateIds.filter(
+          (_, i) => ownerResults[i]?.toString().toLowerCase() === address.toLowerCase()
+        );
+        setTokenIds(owned);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("getLogs error:", err);
+        setLoading(false);
+      });
+  }, [publicClient, address]);
+
+  const eloContracts = tokenIds.map((id) => ({
+    address: addresses[CHAIN_ID].Arena as `0x${string}`,
+    abi: ArenaAbi as Abi,
+    functionName: "getElo" as const,
+    args: [id],
+    chainId: CHAIN_ID,
+  }));
+  const winsContracts = tokenIds.map((id) => ({
+    address: addresses[CHAIN_ID].Arena as `0x${string}`,
+    abi: ArenaAbi as Abi,
+    functionName: "wins" as const,
+    args: [id],
+    chainId: CHAIN_ID,
+  }));
+  const lossesContracts = tokenIds.map((id) => ({
+    address: addresses[CHAIN_ID].Arena as `0x${string}`,
+    abi: ArenaAbi as Abi,
+    functionName: "losses" as const,
+    args: [id],
+    chainId: CHAIN_ID,
+  }));
+  const genContracts = tokenIds.map((id) => ({
+    address: addresses[CHAIN_ID].AgentINFT as `0x${string}`,
+    abi: AgentINFTAbi as Abi,
+    functionName: "generation" as const,
+    args: [id],
+    chainId: CHAIN_ID,
+  }));
+
+  const { data: elosData } = useReadContracts({ contracts: eloContracts });
+  const { data: winsData } = useReadContracts({ contracts: winsContracts });
+  const { data: lossesData } = useReadContracts({ contracts: lossesContracts });
+  const { data: gensData } = useReadContracts({ contracts: genContracts });
+
+  const agents: OwnedAgent[] = tokenIds.map((id, i) => ({
+    tokenId: id,
+    elo: Number((elosData?.[i]?.result as bigint | undefined) ?? 1200n),
+    wins: Number((winsData?.[i]?.result as bigint | undefined) ?? 0n),
+    losses: Number((lossesData?.[i]?.result as bigint | undefined) ?? 0n),
+    generation: Number((gensData?.[i]?.result as bigint | undefined) ?? 0n),
+  }));
+
+  return { agents, loading };
+}
 
 export default function ProfilePage() {
-  const [isClaimingRoyalties, setIsClaimingRoyalties] = useState(false);
+  const { address, isConnected } = useAccount();
+  const [claimHash, setClaimHash] = useState<`0x${string}` | undefined>();
 
-  // Contracts not yet deployed — show 0 / deploying state
-  const ownedAgents: Array<{
-    tokenId: string;
-    name: string;
-    elo: number;
-    wins: number;
-    losses: number;
-    generation: number;
-    owner: string;
-  }> = [];
-  const pendingRoyalties = 0;
+  const { data: pendingRoyaltiesRaw } = useReadContract({
+    address: addresses[CHAIN_ID].RoyaltyVault,
+    abi: RoyaltyVaultAbi as Abi,
+    functionName: "pending",
+    args: [address ?? "0x0000000000000000000000000000000000000000"],
+    chainId: CHAIN_ID,
+    query: { enabled: !!address },
+  });
+
+  const { writeContractAsync, isPending: isClaimPending } = useWriteContract();
+  const { isLoading: isClaimConfirming } = useWaitForTransactionReceipt({ hash: claimHash });
+
+  const pendingRoyalties = pendingRoyaltiesRaw !== undefined
+    ? formatEther(pendingRoyaltiesRaw as bigint)
+    : "0";
+  const hasPending = pendingRoyaltiesRaw !== undefined && (pendingRoyaltiesRaw as bigint) > 0n;
+
+  const { agents, loading } = isConnected && address
+    ? OwnedAgentsSection({ address })
+    : { agents: [], loading: false };
 
   const handleClaimRoyalties = async () => {
-    setIsClaimingRoyalties(true);
+    if (!address) return;
     try {
-      // Will call RoyaltyVault.claim(address) once deployed
-      throw new Error("NOT_IMPLEMENTED: waiting on RoyaltyVault contract deploy");
+      const hash = await writeContractAsync({
+        address: addresses[CHAIN_ID].RoyaltyVault,
+        abi: RoyaltyVaultAbi as Abi,
+        functionName: "claim",
+        args: [address],
+        chainId: CHAIN_ID,
+      });
+      setClaimHash(hash);
+      toast.success("Royalty claim submitted!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Claim failed");
-    } finally {
-      setIsClaimingRoyalties(false);
     }
   };
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+        <div className="glass-card rounded-2xl p-10 max-w-sm w-full text-center space-y-6">
+          <Wallet className="w-10 h-10 text-[#7c3aed] mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-[#ededed]">Connect Wallet</h2>
+            <p className="text-sm text-[#6b7280]">
+              Connect to view your agents and claim royalties.
+            </p>
+          </div>
+          <ConnectButton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative">
@@ -78,7 +264,9 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <p className="text-xs font-mono text-[#10b981] uppercase tracking-widest">Profile</p>
             <h1 className="text-5xl font-black text-[#ededed] tracking-tight">My Agents</h1>
-            <p className="text-[#6b7280]">Manage your forged agents and breeding royalties.</p>
+            <p className="text-[#6b7280] font-mono text-sm">
+              {address?.slice(0, 6)}...{address?.slice(-4)}
+            </p>
           </div>
           <div className="flex gap-3">
             <Link href="/mint">
@@ -96,7 +284,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Royalties Card */}
+        {/* Royalties Card — RoyaltyVault.pending(address) live read */}
         <div className="glass-card rounded-2xl p-8 border border-[#10b981]/20">
           <div className="flex items-center justify-between flex-wrap gap-6">
             <div className="space-y-2">
@@ -105,19 +293,19 @@ export default function ProfilePage() {
                 <h2 className="text-lg font-bold text-[#ededed]">Breeding Royalties</h2>
               </div>
               <p className="text-5xl font-black text-[#10b981] font-mono">
-                {pendingRoyalties}
+                {parseFloat(pendingRoyalties).toFixed(4)}
                 <span className="text-xl text-[#6b7280] ml-2">0G</span>
               </p>
               <p className="text-xs text-[#6b7280] font-mono">
-                Earned from offspring breeding fees · RoyaltyVault.pending(address)
+                RoyaltyVault.pending({address?.slice(0, 6)}...{address?.slice(-4)}) · live read
               </p>
             </div>
             <Button
               onClick={handleClaimRoyalties}
-              disabled={isClaimingRoyalties || pendingRoyalties === 0}
-              className="bg-[#10b981] hover:bg-[#059669] text-black font-bold rounded-xl px-8 py-3 transition-all hover:-translate-y-[2px]"
+              disabled={isClaimPending || isClaimConfirming || !hasPending}
+              className="bg-[#10b981] hover:bg-[#059669] text-black font-bold rounded-xl px-8 py-3 transition-all hover:-translate-y-[2px] disabled:opacity-40"
             >
-              {isClaimingRoyalties ? "Claiming..." : "Claim Royalties"}
+              {isClaimPending || isClaimConfirming ? "Claiming..." : "Claim Royalties"}
             </Button>
           </div>
         </div>
@@ -129,13 +317,7 @@ export default function ProfilePage() {
               value="owned"
               className="rounded-lg text-sm data-[state=active]:bg-[#7c3aed] data-[state=active]:text-white"
             >
-              Owned ({ownedAgents.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="activity"
-              className="rounded-lg text-sm data-[state=active]:bg-[#7c3aed] data-[state=active]:text-white"
-            >
-              Activity
+              Owned ({agents.length})
             </TabsTrigger>
             <TabsTrigger
               value="stats"
@@ -147,10 +329,15 @@ export default function ProfilePage() {
 
           {/* Owned Agents */}
           <TabsContent value="owned" className="mt-6">
-            {ownedAgents.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-16">
+                <span className="text-[#7c3aed] text-3xl font-mono animate-agent-pulse block mb-3">◢◤</span>
+                <p className="text-[#6b7280] font-mono text-sm">Scanning chain for your agents...</p>
+              </div>
+            ) : agents.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ownedAgents.map((agent) => (
-                  <AgentCard key={agent.tokenId} {...agent} />
+                {agents.map((agent) => (
+                  <OwnedAgentCard key={agent.tokenId.toString()} agent={agent} />
                 ))}
               </div>
             ) : (
@@ -160,7 +347,7 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-[#ededed] font-bold">No agents yet</p>
                 <p className="text-sm text-[#6b7280]">
-                  Mint your first agent to start competing.
+                  Mint your first ERC-7857 iNFT agent to start competing.
                 </p>
                 <Link href="/mint">
                   <Button className="mt-2 bg-[#7c3aed] hover:bg-[#5b21b6] text-white rounded-xl font-semibold transition-all hover:-translate-y-[2px]">
@@ -171,44 +358,21 @@ export default function ProfilePage() {
             )}
           </TabsContent>
 
-          {/* Activity */}
-          <TabsContent value="activity" className="mt-6">
-            <div className="glass-card rounded-2xl overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Type</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Agent</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Details</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider text-right">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className="border-white/[0.06]">
-                    <TableCell colSpan={4} className="text-center py-12 text-[#6b7280] text-sm">
-                      No activity recorded yet
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
           {/* Stats */}
           <TabsContent value="stats" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
               {[
-                { label: "Total Agents", value: ownedAgents.length.toString(), color: "#7c3aed" },
+                { label: "Total Agents", value: agents.length.toString(), color: "#7c3aed" },
                 {
                   label: "Total Battles",
-                  value: ownedAgents.reduce((s, a) => s + a.wins + a.losses, 0).toString(),
+                  value: agents.reduce((s, a) => s + a.wins + a.losses, 0).toString(),
                   color: "#dc2626",
                 },
                 {
                   label: "Avg Win Rate",
                   value:
-                    ownedAgents.length > 0
-                      ? `${((ownedAgents.reduce((s, a) => s + a.wins, 0) / ownedAgents.reduce((s, a) => s + a.wins + a.losses, 1)) * 100).toFixed(1)}%`
+                    agents.length > 0 && agents.reduce((s, a) => s + a.wins + a.losses, 0) > 0
+                      ? `${((agents.reduce((s, a) => s + a.wins, 0) / agents.reduce((s, a) => s + a.wins + a.losses, 1)) * 100).toFixed(1)}%`
                       : "—",
                   color: "#10b981",
                 },

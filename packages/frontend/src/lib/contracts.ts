@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { agentForgeAddresses } from "@agentforge/shared";
+import { addresses as agentForgeAddresses } from "@agentforge/shared";
 
 // ABI stubs - in production these would be imported from contract artifacts
 // For now we define minimal ABIs for reading agent data

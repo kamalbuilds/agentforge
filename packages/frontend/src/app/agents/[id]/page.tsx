@@ -14,7 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Swords, Dna, ArrowLeft } from "lucide-react";
+import { Swords, Dna, ArrowLeft, Cpu } from "lucide-react";
+import { useReadContract, useReadContracts } from "wagmi";
+import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
+import type { Abi } from "viem";
+
+const CHAIN_ID = 16601 as const;
 
 export default function AgentDetailPage({
   params,
@@ -22,64 +27,89 @@ export default function AgentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const tokenId = BigInt(id);
 
-  // Contracts not yet deployed — show deploying state
-  const isDeploying = true;
+  const { data: owner, isLoading: ownerLoading } = useReadContract({
+    address: addresses[CHAIN_ID].AgentINFT,
+    abi: AgentINFTAbi as Abi,
+    functionName: "ownerOf",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
 
-  if (isDeploying) {
+  const { data: elo } = useReadContract({
+    address: addresses[CHAIN_ID].Arena,
+    abi: ArenaAbi as Abi,
+    functionName: "getElo",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const { data: wins } = useReadContract({
+    address: addresses[CHAIN_ID].Arena,
+    abi: ArenaAbi as Abi,
+    functionName: "wins",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const { data: losses } = useReadContract({
+    address: addresses[CHAIN_ID].Arena,
+    abi: ArenaAbi as Abi,
+    functionName: "losses",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const { data: generation } = useReadContract({
+    address: addresses[CHAIN_ID].AgentINFT,
+    abi: AgentINFTAbi as Abi,
+    functionName: "generation",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const { data: tokenData } = useReadContract({
+    address: addresses[CHAIN_ID].AgentINFT,
+    abi: AgentINFTAbi as Abi,
+    functionName: "getTokenData",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const { data: lineageData } = useReadContract({
+    address: addresses[CHAIN_ID].AgentINFT,
+    abi: AgentINFTAbi as Abi,
+    functionName: "lineage",
+    args: [tokenId],
+    chainId: CHAIN_ID,
+  });
+
+  const eloVal = elo !== undefined ? Number(elo as bigint) : 1200;
+  const winsVal = wins !== undefined ? Number(wins as bigint) : 0;
+  const lossesVal = losses !== undefined ? Number(losses as bigint) : 0;
+  const genVal = generation !== undefined ? Number(generation as bigint) : 0;
+  const ownerAddr = (owner as string | undefined) ?? "";
+  const td = tokenData as { parentA: bigint; parentB: bigint } | undefined;
+  const ancestors = (lineageData as bigint[] | undefined) ?? [];
+
+  const winRate =
+    winsVal + lossesVal > 0
+      ? ((winsVal / (winsVal + lossesVal)) * 100).toFixed(1)
+      : "—";
+
+  const eloPercent = Math.min(100, Math.max(0, ((eloVal - 800) / 2400) * 100));
+
+  if (ownerLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] relative">
-        <div
-          className="pointer-events-none fixed inset-0 z-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 40% at 50% 10%, rgba(124,58,237,0.08) 0%, transparent 60%)",
-          }}
-        />
-        <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse">◢◤</span>
-              <span className="text-xl font-bold tracking-tight text-[#ededed]">AgentForge</span>
-            </Link>
-            <ConnectButton />
-          </div>
-        </nav>
-        <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 text-center space-y-6">
-          <Link
-            href="/agents"
-            className="inline-flex items-center gap-2 text-sm text-[#6b7280] hover:text-[#ededed] transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Gallery
-          </Link>
-          <div className="w-16 h-16 rounded-2xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center mx-auto">
-            <span className="text-[#7c3aed] text-2xl font-mono animate-agent-pulse">◢◤</span>
-          </div>
-          <h2 className="text-2xl font-bold text-[#ededed]">Agent #{id}</h2>
-          <p className="text-[#6b7280] max-w-sm mx-auto text-sm">
-            Contracts deploying to 0G Galileo Testnet (chainId 16601). Agent
-            data will load once AgentNFT contract is live.
-          </p>
-        </main>
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <span className="text-[#7c3aed] text-4xl font-mono animate-agent-pulse block">◢◤</span>
+          <p className="text-[#6b7280] font-mono text-sm">Loading agent #{id}...</p>
+        </div>
       </div>
     );
   }
-
-  // Placeholder data shape — populated from wagmi useReadContract once deployed
-  const agent = {
-    tokenId: id,
-    name: `Agent-${id}`,
-    elo: 1200,
-    wins: 0,
-    losses: 0,
-    generation: 0,
-    owner: "0x0000000000000000000000000000000000000000",
-  };
-
-  const winRate =
-    agent.wins + agent.losses > 0
-      ? ((agent.wins / (agent.wins + agent.losses)) * 100).toFixed(1)
-      : "—";
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative">
@@ -114,9 +144,7 @@ export default function AgentDetailPage({
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Hex avatar */}
             <div className="hex-clip w-24 h-24 bg-gradient-to-br from-[#7c3aed]/40 to-[#dc2626]/40 flex items-center justify-center shrink-0">
-              <span className="text-[#ededed] font-mono text-3xl font-black">
-                {agent.name.slice(0, 2).toUpperCase()}
-              </span>
+              <Cpu className="w-10 h-10 text-[#7c3aed]" />
             </div>
 
             <div className="flex-1 space-y-5">
@@ -124,15 +152,17 @@ export default function AgentDetailPage({
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h1 className="text-4xl font-black text-[#ededed] tracking-tight">
-                      {agent.name}
+                      Agent #{id}
                     </h1>
                     <Badge className="bg-[#7c3aed]/20 text-[#7c3aed] border border-[#7c3aed]/30 text-xs font-mono">
-                      Gen {agent.generation}
+                      Gen {genVal}
                     </Badge>
                   </div>
-                  <p className="text-sm text-[#6b7280] font-mono">
-                    Token #{agent.tokenId}
-                  </p>
+                  {ownerAddr && (
+                    <p className="text-sm text-[#6b7280] font-mono">
+                      Owner: {ownerAddr.slice(0, 6)}...{ownerAddr.slice(-4)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <Link href="/breed">
@@ -153,10 +183,10 @@ export default function AgentDetailPage({
               {/* Stats row */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "ELO Rating", value: agent.elo.toString(), color: "#7c3aed" },
+                  { label: "ELO Rating", value: eloVal.toString(), color: "#7c3aed" },
                   { label: "Win Rate", value: winRate === "—" ? "—" : `${winRate}%`, color: "#10b981" },
-                  { label: "Wins", value: agent.wins.toString(), color: "#10b981" },
-                  { label: "Losses", value: agent.losses.toString(), color: "#dc2626" },
+                  { label: "Wins", value: winsVal.toString(), color: "#10b981" },
+                  { label: "Losses", value: lossesVal.toString(), color: "#dc2626" },
                 ].map((stat) => (
                   <div key={stat.label} className="space-y-1">
                     <p className="text-xs text-[#6b7280] font-mono uppercase tracking-wider">
@@ -176,36 +206,82 @@ export default function AgentDetailPage({
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-[#6b7280] font-mono">
                   <span>ELO Progress</span>
-                  <span>{agent.elo} / 2000</span>
+                  <span>{eloVal} / 3200</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#dc2626] transition-all"
-                    style={{ width: `${Math.min((agent.elo / 2000) * 100, 100)}%` }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#dc2626] transition-all duration-500"
+                    style={{ width: `${eloPercent}%` }}
                   />
                 </div>
               </div>
+
+              {/* Token data */}
+              {td && (
+                <div className="pt-2 border-t border-white/[0.06] grid grid-cols-2 gap-3 text-xs font-mono">
+                  {td.parentA > 0n && (
+                    <div>
+                      <span className="text-[#6b7280]">Parent A: </span>
+                      <Link
+                        href={`/agents/${td.parentA.toString()}`}
+                        className="text-[#7c3aed] hover:underline"
+                      >
+                        #{td.parentA.toString()}
+                      </Link>
+                    </div>
+                  )}
+                  {td.parentB > 0n && (
+                    <div>
+                      <span className="text-[#6b7280]">Parent B: </span>
+                      <Link
+                        href={`/agents/${td.parentB.toString()}`}
+                        className="text-[#7c3aed] hover:underline"
+                      >
+                        #{td.parentB.toString()}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Lineage Tree */}
+        {/* Lineage — ancestors from chain */}
         <div className="space-y-4">
           <h2 className="text-2xl font-black text-[#ededed] tracking-tight">
             Lineage
           </h2>
-          <LineageTree
-            root={{
-              tokenId: Number(id),
-              name: agent.name,
-              generation: agent.generation,
-              parentA: undefined,
-              parentB: undefined,
-            }}
-          />
+          {ancestors.length > 0 || (td && (td.parentA > 0n || td.parentB > 0n)) ? (
+            <LineageTree
+              root={{
+                tokenId: Number(id),
+                name: `Agent #${id}`,
+                generation: genVal,
+                parentA: td?.parentA && td.parentA > 0n
+                  ? { tokenId: Number(td.parentA), name: `Agent #${td.parentA}`, generation: Math.max(0, genVal - 1) }
+                  : undefined,
+                parentB: td?.parentB && td.parentB > 0n
+                  ? { tokenId: Number(td.parentB), name: `Agent #${td.parentB}`, generation: Math.max(0, genVal - 1) }
+                  : undefined,
+              }}
+            />
+          ) : (
+            <div className="glass-card rounded-2xl p-8 text-center">
+              {td && td.parentA === 0n && td.parentB === 0n ? (
+                <p className="text-[#6b7280] text-sm font-mono">
+                  Genesis agent — no parents on-chain.
+                </p>
+              ) : (
+                <p className="text-[#6b7280] text-sm font-mono">
+                  Loading lineage from chain...
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Match History */}
+        {/* Match History placeholder — events require viem getLogs */}
         <div className="space-y-4">
           <h2 className="text-2xl font-black text-[#ededed] tracking-tight">
             Match History
@@ -218,23 +294,53 @@ export default function AgentDetailPage({
                   <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Opponent</TableHead>
                   <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Result</TableHead>
                   <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">ELO Change</TableHead>
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider text-right">Date</TableHead>
+                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider text-right">Block</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow className="border-white/[0.06]">
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-12 text-[#6b7280] text-sm"
-                  >
-                    No matches played yet
-                  </TableCell>
-                </TableRow>
+                <MatchHistoryRows tokenId={tokenId} wins={winsVal} losses={lossesVal} />
               </TableBody>
             </Table>
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+function MatchHistoryRows({
+  tokenId,
+  wins,
+  losses,
+}: {
+  tokenId: bigint;
+  wins: number;
+  losses: number;
+}) {
+  if (wins + losses === 0) {
+    return (
+      <TableRow className="border-white/[0.06]">
+        <TableCell colSpan={5} className="text-center py-12 text-[#6b7280] text-sm">
+          No matches played yet
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  // Summary row when matches exist but full event log fetch not yet wired
+  return (
+    <TableRow className="border-white/[0.06]">
+      <TableCell colSpan={5} className="text-center py-8 text-[#6b7280] text-sm font-mono">
+        {wins + losses} match(es) on-chain · W:{wins} L:{losses} · full log on{" "}
+        <a
+          href={`https://chainscan-galileo.0g.ai/address/${addresses[CHAIN_ID].Arena}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#7c3aed] hover:underline"
+        >
+          0G Explorer
+        </a>
+      </TableCell>
+    </TableRow>
   );
 }

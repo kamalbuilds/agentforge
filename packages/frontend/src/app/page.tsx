@@ -35,8 +35,8 @@ function HeroStats() {
 
   // For total agents, use matchCount's agentINFT address cross-check
   // We'll display matchCount and breedCount from real reads
-  const matchDisplay = matchCount !== undefined ? matchCount.toString() : "0";
-  const breedDisplay = breedCount !== undefined ? breedCount.toString() : "0";
+  const matchDisplay = matchCount != null ? matchCount.toString() : "0";
+  const breedDisplay = breedCount != null ? breedCount.toString() : "0";
 
   return { matchDisplay, breedDisplay };
 }
@@ -65,21 +65,21 @@ function StatsSection() {
       color: "#7c3aed",
       icon: <Cpu className="w-5 h-5" />,
       // Genesis agent #1 is known; use matchCount as a proxy lower bound since no ERC721 enumerable totalSupply
-      value: matchCount !== undefined ? Math.max(Number(matchCount) * 2, 1).toString() : "1",
+      value: matchCount != null ? Math.max(Number(matchCount) * 2, 1).toString() : "1",
     },
     {
       label: "ARENA MATCHES",
       sublabel: "Battles verified on-chain",
       color: "#dc2626",
       icon: <Trophy className="w-5 h-5" />,
-      value: matchCount !== undefined ? matchCount.toString() : "0",
+      value: matchCount != null ? matchCount.toString() : "0",
     },
     {
       label: "BREEDS COMPLETED",
       sublabel: "Next-gen offspring born",
       color: "#10b981",
       icon: <Dna className="w-5 h-5" />,
-      value: breedCount !== undefined ? breedCount.toString() : "0",
+      value: breedCount != null ? breedCount.toString() : "0",
     },
   ];
 
