@@ -108,7 +108,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6">
+      <main className="relative z-10 max-w-6xl mx-auto px-6 pb-32">
 
         {/* Hero */}
         <section className="py-32 md:py-40 space-y-10">

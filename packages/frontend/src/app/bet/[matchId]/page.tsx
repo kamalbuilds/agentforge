@@ -117,7 +117,7 @@ export default function BetPage({
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-2xl mx-auto px-6 py-16 space-y-8">
+      <main className="relative z-10 max-w-2xl mx-auto px-6 py-16 pb-32 space-y-8">
         <Link
           href="/arena"
           className="inline-flex items-center gap-2 text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
@@ -195,7 +195,13 @@ export default function BetPage({
               Token
             </Label>
             <select
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#7c3aed]/50 focus:outline-none text-sm"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#7c3aed]/50 focus:outline-none focus:ring-1 focus:ring-[#7c3aed]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05]"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 1rem center',
+                paddingRight: '2.5rem',
+              }}
               value={selectedToken}
               onChange={(e) => setSelectedToken(e.target.value)}
             >

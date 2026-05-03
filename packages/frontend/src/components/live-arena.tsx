@@ -51,16 +51,15 @@ export function LiveArena() {
         {isConnected ? (
           <Wifi className="w-4 h-4 text-[#10b981]" />
         ) : (
-          <WifiOff className="w-4 h-4 text-[#dc2626]" />
+          <WifiOff className="w-4 h-4 text-white/40" />
         )}
         <span
-          className="text-xs font-mono"
-          style={{ color: isConnected ? "#10b981" : "#dc2626" }}
+          className="text-xs font-mono text-white/40"
         >
           {isConnected ? "Connected to Arena stream" : "Awaiting connection..."}
         </span>
         <span
-          className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-[#10b981]" : "bg-[#dc2626]"} animate-pulse ml-auto`}
+          className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-[#10b981]" : "bg-white/30"} animate-pulse ml-auto`}
         />
       </div>
 

@@ -275,7 +275,7 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 space-y-10">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 pb-32 space-y-10">
         {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="space-y-2">
@@ -332,13 +332,13 @@ export default function ProfilePage() {
           <TabsList className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit">
             <TabsTrigger
               value="owned"
-              className="rounded-lg text-sm data-[state=active]:bg-[#7c3aed] data-[state=active]:text-white"
+              className="rounded-lg text-sm data-[state=active]:bg-white/[0.1] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/60"
             >
               Owned ({agents.length})
             </TabsTrigger>
             <TabsTrigger
               value="stats"
-              className="rounded-lg text-sm data-[state=active]:bg-[#7c3aed] data-[state=active]:text-white"
+              className="rounded-lg text-sm data-[state=active]:bg-white/[0.1] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/60"
             >
               Stats
             </TabsTrigger>

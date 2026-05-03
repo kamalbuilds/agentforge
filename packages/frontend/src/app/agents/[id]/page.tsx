@@ -131,7 +131,7 @@ export default function AgentDetailPage({
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 space-y-10">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 pb-32 space-y-10">
         <Link
           href="/agents"
           className="inline-flex items-center gap-2 text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"

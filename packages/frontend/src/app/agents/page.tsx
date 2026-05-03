@@ -216,7 +216,7 @@ export default function AgentsPage() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 pb-32">
         {/* Header */}
         <div className="space-y-8 mb-12">
           <div className="flex items-start justify-between">

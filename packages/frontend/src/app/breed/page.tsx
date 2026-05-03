@@ -33,7 +33,7 @@ export default function BreedPage() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-16">
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-16 pb-32">
         <div className="space-y-10">
           {/* Header */}
           <div className="space-y-2">

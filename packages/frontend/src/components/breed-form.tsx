@@ -93,7 +93,13 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             Parent A
           </Label>
           <select
-            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none text-sm"
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none focus:ring-1 focus:ring-[#10b981]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              paddingRight: '2.5rem',
+            }}
             {...register("parentA")}
             disabled={isDeploying}
           >
@@ -115,7 +121,13 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             Parent B
           </Label>
           <select
-            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none text-sm"
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none focus:ring-1 focus:ring-[#10b981]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              paddingRight: '2.5rem',
+            }}
             {...register("parentB")}
             disabled={isDeploying}
           >
@@ -148,9 +160,10 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             min="0"
             max="5000"
             step="100"
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-            style={{ accentColor: "#10b981" }}
-            {...register("royaltyBps")}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer outline-none transition-all"
+            {...register("royaltyBps", {
+              setValueAs: (v) => v ? Number(v) : 0
+            })}
             disabled={isDeploying}
           />
           <div className="flex justify-between text-xs text-[#6b7280] font-mono">
