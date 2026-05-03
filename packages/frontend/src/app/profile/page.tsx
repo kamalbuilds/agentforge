@@ -216,16 +216,33 @@ export default function ProfilePage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
-        <div className="glass-card rounded-2xl p-10 max-w-sm w-full text-center space-y-6">
-          <Wallet className="w-10 h-10 text-[#7c3aed] mx-auto" />
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold text-[#ededed]">Connect Wallet</h2>
-            <p className="text-sm text-[#6b7280]">
-              Connect to view your agents and claim royalties.
-            </p>
+      <div className="min-h-screen bg-[#0a0a0f]">
+        <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse">◢◤</span>
+              <span className="text-xl font-bold tracking-tight text-[#ededed]">AgentForge</span>
+            </Link>
+            <div className="hidden md:flex items-center gap-6">
+              <Link href="/agents" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Gallery</Link>
+              <Link href="/arena" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Arena</Link>
+              <Link href="/breed" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Breed</Link>
+              <Link href="/mint" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Mint</Link>
+            </div>
+            <ConnectButton />
           </div>
-          <ConnectButton />
+        </nav>
+        <div className="flex items-center justify-center px-6" style={{ minHeight: "calc(100vh - 73px)" }}>
+          <div className="glass-card rounded-2xl p-10 max-w-sm w-full text-center space-y-6">
+            <Wallet className="w-10 h-10 text-[#7c3aed] mx-auto" />
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-[#ededed]">Connect Wallet</h2>
+              <p className="text-sm text-[#6b7280]">
+                Connect to view your agents and claim royalties.
+              </p>
+            </div>
+            <ConnectButton />
+          </div>
         </div>
       </div>
     );
