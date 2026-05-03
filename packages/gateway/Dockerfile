@@ -19,6 +19,10 @@ RUN npm install -g pnpm && \
 COPY packages/gateway ./packages/gateway
 COPY packages/shared ./packages/shared
 
+# Build shared first (gateway imports @agentforge/shared at runtime)
+WORKDIR /app/packages/shared
+RUN pnpm build
+
 # Build gateway
 WORKDIR /app/packages/gateway
 RUN pnpm build

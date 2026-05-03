@@ -19,6 +19,13 @@ RUN npm install -g pnpm && \
 COPY packages/agent ./packages/agent
 COPY packages/shared ./packages/shared
 
-# Run agent via tsx (transpiles TypeScript at runtime)
+# Copy contract artifacts (agent loads ABIs from contracts/out at runtime)
+COPY packages/contracts/out ./packages/contracts/out
+
+# Build shared package (agent imports @agentforge/shared at runtime)
+WORKDIR /app/packages/shared
+RUN pnpm build
+
+# Run agent via tsx with --import flag (Node.js 24 compatible)
 WORKDIR /app/packages/agent
-CMD ["pnpm", "start"]
+CMD ["node", "--import", "tsx/esm", "src/index.ts"]

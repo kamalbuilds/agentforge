@@ -14,17 +14,21 @@ const envSchema = z.object({
     .url("ZG_STORAGE_INDEXER must be a valid URL"),
   ZG_COMPUTE_PROVIDER: z
     .string()
-    .min(1, "ZG_COMPUTE_PROVIDER must be a provider address (0x...)"),
+    .optional()
+    .default(""),
   AXL_NODE_URL: z
     .string()
     .url("AXL_NODE_URL must be a valid URL"),
   AGENT_TOKEN_ID: z
     .string()
-    .transform((v) => BigInt(v))
+    .optional()
+    .default("0")
+    .transform((v) => BigInt(v ?? "0"))
     .pipe(z.bigint().nonnegative("AGENT_TOKEN_ID must be a non-negative integer")),
   KEEPERHUB_API_KEY: z
     .string()
-    .startsWith("kh_", "KEEPERHUB_API_KEY must start with kh_"),
+    .optional()
+    .default(""),
   KEEPERHUB_API_URL: z
     .string()
     .url("KEEPERHUB_API_URL must be a valid URL")

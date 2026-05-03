@@ -72,8 +72,9 @@ services:
       - ZG_RPC_URL=${ZG_RPC_URL}
       - ZG_CHAIN_ID=${ZG_CHAIN_ID}
       - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
-      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER:-}
       - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+      - KEEPERHUB_API_KEY=${KEEPERHUB_API_KEY}
     restart: unless-stopped
 
   # Agent Arena Debater - Strategy=debater, TokenId=3
@@ -96,8 +97,9 @@ services:
       - ZG_RPC_URL=${ZG_RPC_URL}
       - ZG_CHAIN_ID=${ZG_CHAIN_ID}
       - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
-      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER:-}
       - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+      - KEEPERHUB_API_KEY=${KEEPERHUB_API_KEY}
     restart: unless-stopped
 
   # Breeding Operator - Handles genesis + breeding finalization
@@ -113,14 +115,16 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=info
       - BREEDING_OPERATOR=true
+      - AGENT_TOKEN_ID=0
       - AXL_NODE_URL=http://axl-node:9000
       - GATEWAY_URL=http://gateway:8787
       - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
       - ZG_RPC_URL=${ZG_RPC_URL}
       - ZG_CHAIN_ID=${ZG_CHAIN_ID}
       - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
-      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER:-}
       - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+      - KEEPERHUB_API_KEY=${KEEPERHUB_API_KEY}
     restart: unless-stopped
 
   # Frontend - Next.js UI

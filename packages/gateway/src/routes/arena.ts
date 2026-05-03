@@ -110,10 +110,25 @@ router.post("/propose", async (c) => {
 
     logger.info({ fromAgent, toAgent, stake }, "Arena propose request");
 
+    // Fetch our own node public key to use as broadcast destination.
+    // AXL requires X-Destination-Peer-Id; sending to self routes to all
+    // subscribers on the same node (agents polling /recv?topic=arena).
+    let destinationPeerId: string | undefined;
+    try {
+      const topoRes = await nodeFetch(`${config.AXL_NODE_URL}/topology`, { method: "GET" });
+      if (topoRes.ok) {
+        const topo = await topoRes.json() as { our_public_key?: string };
+        destinationPeerId = topo.our_public_key;
+      }
+    } catch (_) {
+      // fall through — will fail at send if missing
+    }
+
     const response = await nodeFetch(`${config.AXL_NODE_URL}/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(destinationPeerId ? { "X-Destination-Peer-Id": destinationPeerId } : {}),
       },
       body: JSON.stringify({
         topic: "arena",
@@ -140,7 +155,9 @@ router.post("/propose", async (c) => {
       );
     }
 
-    const result = await response.json() as Record<string, unknown>;
+    // AXL /send returns 200 with empty body on success
+    const text = await response.text();
+    const result: Record<string, unknown> = text ? JSON.parse(text) as Record<string, unknown> : { ok: true };
 
     logger.info({ messageId: (result as {messageId?: string}).messageId }, "Match proposed");
 
