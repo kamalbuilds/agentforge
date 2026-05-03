@@ -1,89 +1,171 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Dna, AlertCircle } from "lucide-react";
+import { Dna, Loader2 } from "lucide-react";
+import {
+  useAccount,
+  usePublicClient,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
+import { parseEther } from "viem";
+import { AgentINFTAbi, BreedingMarketAbi, ArenaAbi, addresses } from "@agentforge/shared";
+import type { Abi } from "viem";
 
-const breedSchema = z.object({
-  parentA: z.string().min(1, "Select parent A"),
-  parentB: z.string().min(1, "Select parent B"),
-  royaltyBps: z.number().min(0).max(5000, "Max 50% royalty"),
-});
+const CHAIN_ID = 16602 as const;
+const DEFAULT_BREED_FEE = parseEther("0.01");
 
-type BreedFormData = {
-  parentA: string;
-  parentB: string;
-  royaltyBps: number;
-};
+type BreedFormData = { parentA: string; parentB: string; royaltyBps: number };
 
-interface BreedFormProps {
-  ownedAgents?: Array<{ tokenId: string; name: string; elo: number }>;
+interface OwnedAgent { tokenId: string; elo: number; }
+
+function useOwnedTokenIds(address: `0x${string}` | undefined) {
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
+  const [tokenIds, setTokenIds] = useState<bigint[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!publicClient || !address) { setTokenIds([]); return; }
+    setLoading(true);
+    publicClient.getLogs({
+      address: addresses[CHAIN_ID].AgentINFT,
+      event: {
+        type: "event",
+        name: "Transfer",
+        inputs: [
+          { name: "from",    type: "address", indexed: true },
+          { name: "to",      type: "address", indexed: true },
+          { name: "tokenId", type: "uint256", indexed: true },
+        ],
+      } as const,
+      args: { to: address },
+      fromBlock: 0n,
+      toBlock: "latest",
+    }).then(async (logs) => {
+      const candidateIds = logs.map((l) => (l.args as { tokenId?: bigint }).tokenId).filter((id): id is bigint => id !== undefined);
+      const ownerResults = await Promise.all(
+        candidateIds.map((id) => publicClient.readContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "ownerOf", args: [id] }).catch(() => null))
+      );
+      const owned = candidateIds.filter((_, i) => typeof ownerResults[i] === "string" && (ownerResults[i] as string).toLowerCase() === address.toLowerCase());
+      setTokenIds(owned);
+    }).catch(() => setTokenIds([])).finally(() => setLoading(false));
+  }, [publicClient, address]);
+
+  return { tokenIds, loading };
 }
 
-export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function BreedForm() {
+  const searchParams = useSearchParams();
+  const preselectedB = searchParams.get("parentB") ?? "";
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<BreedFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(breedSchema) as any,
-    defaultValues: { parentA: "", parentB: "", royaltyBps: 500 },
+  const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
+  const { tokenIds, loading: loadingTokens } = useOwnedTokenIds(address);
+
+  const eloContracts = tokenIds.map((id) => ({
+    address: addresses[CHAIN_ID].Arena as `0x${string}`,
+    abi: ArenaAbi as Abi,
+    functionName: "getElo" as const,
+    args: [id],
+    chainId: CHAIN_ID,
+  }));
+  const { data: elosData } = useReadContracts({ contracts: eloContracts });
+
+  const ownedAgents: OwnedAgent[] = tokenIds.map((id, i) => ({
+    tokenId: id.toString(),
+    elo: Number((elosData?.[i]?.result as bigint | undefined) ?? 1200n),
+  }));
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const { writeContractAsync } = useWriteContract();
+
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<BreedFormData>({
+    defaultValues: { parentA: "", parentB: preselectedB, royaltyBps: 500 },
   });
 
   const parentA = watch("parentA");
   const parentB = watch("parentB");
   const royaltyBps = watch("royaltyBps");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onSubmit = async (data: any) => {
-    const typedData = data as BreedFormData;
-    if (typedData.parentA === typedData.parentB) {
-      toast.error("Parents must be different agents");
-      return;
-    }
+  const onSubmit = async (data: BreedFormData) => {
+    if (data.parentA === data.parentB) { toast.error("Parents must be different agents"); return; }
+    if (!address) { toast.error("Connect your wallet first"); return; }
+    if (!publicClient) { toast.error("No RPC client — check your network"); return; }
 
     setIsLoading(true);
     try {
-      // Real flow: BreedingHub.requestBreed(parentA, parentB, royaltyBps) { value: breedFee }
-      throw new Error("NOT_IMPLEMENTED: waiting on BreedingHub contract deploy");
+      const idA = BigInt(data.parentA);
+      const idB = BigInt(data.parentB);
+
+      setStatusMsg("Checking breeding approvals...");
+      const [approvedA, approvedB] = await Promise.all([
+        publicClient.readContract({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "isBreedingApproved", args: [idA] }),
+        publicClient.readContract({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "isBreedingApproved", args: [idB] }),
+      ]);
+
+      if (!approvedA) {
+        setStatusMsg(`Approving agent #${data.parentA} for breeding...`);
+        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "setBreedingApproval" as never, args: [idA, true] as never, chainId: CHAIN_ID });
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+
+      if (!approvedB) {
+        setStatusMsg(`Approving agent #${data.parentB} for breeding...`);
+        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "setBreedingApproval" as never, args: [idB, true] as never, chainId: CHAIN_ID });
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+
+      setStatusMsg("Submitting breed request...");
+      const breedHash = await writeContractAsync({
+        address: addresses[CHAIN_ID].BreedingMarket,
+        abi: BreedingMarketAbi as Abi,
+        functionName: "requestBreed",
+        args: [idA, idB, BigInt(data.royaltyBps)],
+        value: DEFAULT_BREED_FEE,
+        chainId: CHAIN_ID,
+      });
+
+      setStatusMsg("Waiting for confirmation...");
+      await publicClient.waitForTransactionReceipt({ hash: breedHash });
+
+      toast.success("Breed request submitted! Offspring will mint when the operator fulfills.");
+      setValue("parentA", "");
+      setValue("parentB", "");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Breed failed");
     } finally {
       setIsLoading(false);
+      setStatusMsg(null);
     }
   };
 
-  const isDeploying = ownedAgents.length === 0;
+  const noAgents = !loadingTokens && ownedAgents.length === 0;
 
   return (
     <div className="glass-card rounded-2xl p-6 space-y-6">
-      {isDeploying && (
+      {noAgents && (
         <div className="flex items-start gap-3 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-xl p-4">
-          <AlertCircle className="w-4 h-4 text-[#7c3aed] shrink-0 mt-0.5" />
+          <Dna className="w-4 h-4 text-[#7c3aed] shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <p className="text-sm font-bold text-[#ededed]">Contracts Deploying</p>
+            <p className="text-sm font-bold text-[#ededed]">No Agents Owned</p>
             <p className="text-xs text-[#6b7280]">
-              Mint agents first. Breeding requires at least 2 owned agents once
-              BreedingHub is live on 0G Galileo.
+              Mint at least two agents before you can breed on 0G Galileo.
             </p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* DNA icon */}
         <div className="flex justify-center">
           <div className="w-12 h-12 rounded-2xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center">
-            <Dna className="w-6 h-6 text-[#7c3aed]" />
+            {loadingTokens ? <Loader2 className="w-6 h-6 text-[#7c3aed] animate-spin" /> : <Dna className="w-6 h-6 text-[#7c3aed]" />}
           </div>
         </div>
 
@@ -101,12 +183,12 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
               paddingRight: '2.5rem',
             }}
             {...register("parentA")}
-            disabled={isDeploying}
+            disabled={noAgents || isLoading}
           >
             <option value="">Select parent A</option>
             {ownedAgents.map((agent) => (
               <option key={agent.tokenId} value={agent.tokenId}>
-                {agent.name} (#{agent.tokenId}) · ELO {agent.elo}
+                #{agent.tokenId} · ELO {agent.elo}
               </option>
             ))}
           </select>
@@ -129,14 +211,14 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
               paddingRight: '2.5rem',
             }}
             {...register("parentB")}
-            disabled={isDeploying}
+            disabled={noAgents || isLoading}
           >
             <option value="">Select parent B</option>
             {ownedAgents
               .filter((a) => a.tokenId !== parentA)
               .map((agent) => (
                 <option key={agent.tokenId} value={agent.tokenId}>
-                  {agent.name} (#{agent.tokenId}) · ELO {agent.elo}
+                  #{agent.tokenId} · ELO {agent.elo}
                 </option>
               ))}
           </select>
@@ -160,17 +242,15 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
           </div>
           <input
             type="range"
-            min="0"
+            min="100"
             max="5000"
             step="100"
-            className="w-full h-2 rounded-full appearance-none cursor-pointer outline-none transition-all"
-            {...register("royaltyBps", {
-              setValueAs: (v) => v ? Number(v) : 0
-            })}
-            disabled={isDeploying}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer outline-none transition-all accent-[#7c3aed]"
+            {...register("royaltyBps", { valueAsNumber: true })}
+            disabled={noAgents || isLoading}
           />
           <div className="flex justify-between text-xs text-[#6b7280] font-mono">
-            <span>0%</span>
+            <span>1%</span>
             <span>50%</span>
           </div>
           <p className="text-xs text-[#6b7280]">
@@ -190,19 +270,27 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
               <span style={{ color: "#7c3aed" }}>{(royaltyBps / 100).toFixed(1)}%</span>
             </p>
             <p className="text-xs text-[#6b7280]">
-              Breeding fee calculated from parent ELO sum at time of transaction
+              Breed fee: <span className="text-[#ededed] font-mono">0.01 0G</span>
             </p>
+          </div>
+        )}
+
+        {/* Status */}
+        {statusMsg && (
+          <div className="flex items-center gap-2 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-xl px-4 py-3">
+            <span className="w-2 h-2 rounded-full bg-[#7c3aed] animate-pulse shrink-0" />
+            <p className="text-xs font-mono text-[#7c3aed]">{statusMsg}</p>
           </div>
         )}
 
         {/* Submit */}
         <Button
           type="submit"
-          disabled={isLoading || isDeploying || !parentA || !parentB}
+          disabled={isLoading || noAgents || !parentA || !parentB}
           className="w-full text-white font-semibold py-4 rounded-xl transition-all hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           style={{ background: "#7c3aed", fontFamily: "var(--font-space-grotesk), sans-serif" }}
         >
-          {isLoading ? "Submitting..." : "Request Breed"}
+          {isLoading ? (statusMsg ?? "Processing...") : "Request Breed"}
         </Button>
       </form>
     </div>
