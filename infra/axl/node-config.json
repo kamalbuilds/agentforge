@@ -1,0 +1,14 @@
+{
+  "yggdrasil": {
+    "private_key_path": "/app/private.pem"
+  },
+  "api": {
+    "port": 9002,
+    "bridge_addr": "0.0.0.0"
+  },
+  "p2p": {
+    "listen_addr": "0.0.0.0",
+    "listen_port": 9001
+  },
+  "peers": []
+}
