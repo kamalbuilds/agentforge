@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { BreedForm } from "@/components/breed-form";
 import { Nav } from "@/components/nav";
 import { GitBranch, Coins, Clock, Dna } from "lucide-react";
@@ -60,7 +61,9 @@ export default function BreedPage() {
 
         {/* ── Breed form + helix visual ── */}
         <div className="mb-12 grid xl:grid-cols-[1fr_320px] gap-8 items-start">
-          <BreedForm />
+          <Suspense fallback={<div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-sm text-white/40">Loading breed form...</div>}>
+            <BreedForm />
+          </Suspense>
           <div className="hidden xl:block relative w-full aspect-square rounded-2xl overflow-hidden border border-white/[0.06]">
             <Image
               src="/breed/helix.jpg"
