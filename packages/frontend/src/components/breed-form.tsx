@@ -82,8 +82,8 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
       <form onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])} className="space-y-6">
         {/* DNA icon */}
         <div className="flex justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-[#10b981]/10 border border-[#10b981]/20 flex items-center justify-center">
-            <Dna className="w-6 h-6 text-[#10b981]" />
+          <div className="w-12 h-12 rounded-2xl bg-[#7c3aed]/10 border border-[#7c3aed]/20 flex items-center justify-center">
+            <Dna className="w-6 h-6 text-[#7c3aed]" />
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             Parent A
           </Label>
           <select
-            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none focus:ring-1 focus:ring-[#10b981]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#7c3aed]/50 focus:outline-none focus:ring-1 focus:ring-[#7c3aed]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
@@ -121,7 +121,7 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             Parent B
           </Label>
           <select
-            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#10b981]/50 focus:outline-none focus:ring-1 focus:ring-[#10b981]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-[#ededed] focus:border-[#7c3aed]/50 focus:outline-none focus:ring-1 focus:ring-[#7c3aed]/30 text-sm cursor-pointer appearance-none transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
@@ -151,7 +151,10 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
             <Label className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">
               Royalty for Offspring Breeds
             </Label>
-            <span className="text-sm font-black text-[#10b981] font-mono">
+            <span
+              className="text-sm font-bold tabular"
+              style={{ fontFamily: "var(--font-space-mono), monospace", color: "#7c3aed" }}
+            >
               {(royaltyBps / 100).toFixed(1)}%
             </span>
           </div>
@@ -177,14 +180,14 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
 
         {/* Preview box */}
         {parentA && parentB && parentA !== parentB && (
-          <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-xl p-4 space-y-1">
-            <p className="text-xs font-mono text-[#10b981] uppercase tracking-wider mb-2">
+          <div className="bg-[#7c3aed]/5 border border-[#7c3aed]/20 rounded-xl p-4 space-y-1">
+            <p className="text-xs font-mono text-[#7c3aed] uppercase tracking-wider mb-2">
               Breed Preview
             </p>
             <p className="text-xs text-[#6b7280]">
               Offspring will be Gen{" "}
               <span className="text-[#ededed]">N+1</span> · Royalty:{" "}
-              <span className="text-[#10b981]">{(royaltyBps / 100).toFixed(1)}%</span>
+              <span style={{ color: "#7c3aed" }}>{(royaltyBps / 100).toFixed(1)}%</span>
             </p>
             <p className="text-xs text-[#6b7280]">
               Breeding fee calculated from parent ELO sum at time of transaction
@@ -196,7 +199,8 @@ export function BreedForm({ ownedAgents = [] }: BreedFormProps) {
         <Button
           type="submit"
           disabled={isLoading || isDeploying || !parentA || !parentB}
-          className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-bold py-4 rounded-xl transition-all hover:-translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="w-full text-white font-semibold py-4 rounded-xl transition-all hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          style={{ background: "#7c3aed", fontFamily: "var(--font-space-grotesk), sans-serif" }}
         >
           {isLoading ? "Submitting..." : "Request Breed"}
         </Button>

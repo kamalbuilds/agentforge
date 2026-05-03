@@ -2,96 +2,102 @@
 
 import Link from "next/link";
 import { BreedForm } from "@/components/breed-form";
-import { ConnectButton } from "@/components/connect-button";
+import { Nav } from "@/components/nav";
 import { GitBranch, Coins, Clock, Dna } from "lucide-react";
+
+const MECHANICS = [
+  {
+    icon: Dna,
+    color: "#7c3aed",
+    title: "Genetic Inheritance",
+    desc: "Offspring inherit traits from both parents weighted by ELO. Stronger parent contributes dominant traits. Generation increments by 1.",
+  },
+  {
+    icon: Coins,
+    color: "#f59e0b",
+    title: "Breeding Fee",
+    desc: "Fee calculated from parent ELO sum. Paid in 0G native token. Split between protocol treasury and parent owners.",
+  },
+  {
+    icon: GitBranch,
+    color: "#a855f7",
+    title: "Royalty Rewards",
+    desc: "Every breed from your agents earns your set royalty %. Accrues in RoyaltyVault. Claim anytime from /profile.",
+  },
+  {
+    icon: Clock,
+    color: "#ef4444",
+    title: "Cooldown Period",
+    desc: "Agents have a per-breed cooldown to prevent spam. Cooldown resets on each successful breed transaction.",
+  },
+];
 
 export default function BreedPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative">
+    <div className="min-h-screen bg-[#0a0a14] relative">
       <div
         className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 30% 20%, rgba(16,185,129,0.06) 0%, transparent 60%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 60% 35% at 25% 15%, rgba(16,185,129,0.04) 0%, transparent 55%)" }}
       />
 
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse">◢◤</span>
-            <span className="text-xl font-bold tracking-tight text-[#ededed]">AgentForge</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/agents" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Gallery</Link>
-            <Link href="/arena" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Arena</Link>
-            <Link href="/breed" className="text-sm text-[#ededed]">Breed</Link>
-            <Link href="/mint" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Mint</Link>
-          </div>
-          <ConnectButton />
+      <Nav />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-16 pb-32">
+        {/* ── Header ── */}
+        <div className="space-y-2 mb-10">
+          <p className="text-xs font-mono uppercase tracking-[0.12em] text-[#10b981]">Genesis Lab</p>
+          <h1
+            className="text-5xl font-semibold text-[#ededed]"
+            style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.02em" }}
+          >
+            Breed Agents
+          </h1>
+          <p className="text-sm text-white/40 max-w-lg leading-relaxed">
+            Combine two parent agents to mint a Generation+1 offspring. Set royalty BPS to earn from every descendant breed.
+          </p>
         </div>
-      </nav>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-16 pb-32">
-        <div className="space-y-10">
-          {/* Header */}
-          <div className="space-y-2">
-            <p className="text-xs font-mono text-[#10b981] uppercase tracking-widest">Genesis Lab</p>
-            <h1 className="text-5xl font-black text-[#ededed] tracking-tight">Breed Agents</h1>
-            <p className="text-[#6b7280] leading-relaxed max-w-xl">
-              Combine two parent agents to mint a Generation+1 offspring. Set
-              royalty BPS to earn from every descendant breed.
-            </p>
-          </div>
-
-          {/* Main Form */}
+        {/* ── Breed form ── */}
+        <div className="mb-12">
           <BreedForm />
+        </div>
 
-          {/* Mechanics */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-[#ededed] tracking-tight">Breeding Mechanics</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                {
-                  icon: <Dna className="w-4 h-4" />,
-                  color: "#10b981",
-                  title: "Genetic Inheritance",
-                  desc: "Offspring inherit traits from both parents weighted by ELO. Stronger parent contributes dominant traits. Generation increments by 1.",
-                },
-                {
-                  icon: <Coins className="w-4 h-4" />,
-                  color: "#f59e0b",
-                  title: "Breeding Fee",
-                  desc: "Fee calculated from parent ELO sum. Paid in 0G native token. Split between protocol treasury and parent owners.",
-                },
-                {
-                  icon: <GitBranch className="w-4 h-4" />,
-                  color: "#7c3aed",
-                  title: "Royalty Rewards",
-                  desc: "Every breed from your agents earns your set royalty %. Accrues in RoyaltyVault. Claim anytime from /profile.",
-                },
-                {
-                  icon: <Clock className="w-4 h-4" />,
-                  color: "#dc2626",
-                  title: "Cooldown Period",
-                  desc: "Agents have a per-breed cooldown to prevent spam. Cooldown resets on each successful breed transaction.",
-                },
-              ].map((item) => (
-                <div key={item.title} className="glass-card rounded-xl p-5 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center"
-                      style={{ background: `${item.color}15`, color: item.color }}
-                    >
-                      {item.icon}
-                    </div>
-                    <h3 className="text-sm font-bold text-[#ededed]">{item.title}</h3>
+        {/* ── Divider ── */}
+        <div className="hud-line-h mb-10" />
+
+        {/* ── Mechanics ── */}
+        <div className="space-y-5">
+          <h2
+            className="text-lg font-semibold text-[#ededed]"
+            style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.01em" }}
+          >
+            Breeding Mechanics
+          </h2>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {MECHANICS.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.title}
+                  className="glass-card rounded-xl p-5 space-y-3 animate-fade-up"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: `${item.color}10`, border: `1px solid ${item.color}22` }}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: item.color }} />
                   </div>
-                  <p className="text-xs text-[#6b7280] leading-relaxed">{item.desc}</p>
+                  <h3
+                    className="text-sm font-semibold text-[#ededed]"
+                    style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-white/35 leading-relaxed">{item.desc}</p>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </main>
