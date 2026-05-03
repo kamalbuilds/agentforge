@@ -27,8 +27,8 @@ WORKDIR /app
 EXPOSE 9002 9001
 
 # Copy config and entrypoint
-COPY node-config.json /app/node-config.json
-COPY genkey.sh /app/genkey.sh
+COPY infra/axl/node-config.json /app/node-config.json
+COPY infra/axl/genkey.sh /app/genkey.sh
 
 RUN chmod +x /app/genkey.sh
 

@@ -111,13 +111,13 @@ export function BreedForm() {
 
       if (!approvedA) {
         setStatusMsg(`Approving agent #${data.parentA} for breeding...`);
-        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "setBreedingApproval" as never, args: [idA, true] as never, chainId: CHAIN_ID });
+        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "setBreedingApproval" as never, args: [idA, true] as never, chainId: CHAIN_ID });
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
       if (!approvedB) {
         setStatusMsg(`Approving agent #${data.parentB} for breeding...`);
-        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "setBreedingApproval" as never, args: [idB, true] as never, chainId: CHAIN_ID });
+        const hash = await writeContractAsync({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "setBreedingApproval" as never, args: [idB, true] as never, chainId: CHAIN_ID });
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
