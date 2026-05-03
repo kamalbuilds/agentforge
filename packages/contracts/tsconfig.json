@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["foundry.toml", "remappings.txt"],
+  "exclude": ["src", "test", "script", "out", "lib"]
+}

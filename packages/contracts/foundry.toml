@@ -1,0 +1,12 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.26"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+fs_permissions = [{ access = "read-write", path = "/Users/kamal/Desktop/ethglobal/packages/shared/src" }]
+
+[profile.default.fuzz]
+runs = 256
