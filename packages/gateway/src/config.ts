@@ -8,8 +8,13 @@ const envSchema = z.object({
   // CCIP-Read signing
   CCIP_SIGNER_KEY: z.string().min(1, "CCIP_SIGNER_KEY is required"),
 
-  // 0G Storage
-  ZEROG_INDEXER_URL: z.string().url().default("http://localhost:6000"),
+  // 0G Storage - supports both ZEROG_INDEXER_URL and ZG_STORAGE_INDEXER env var names
+  ZEROG_INDEXER_URL: z.string().url().default(
+    process.env.ZG_STORAGE_INDEXER ?? "https://indexer-storage-testnet-turbo.0g.ai"
+  ),
+
+  // Deployer private key - used for signing 0G storage uploads (pays gas)
+  DEPLOYER_PRIVATE_KEY: z.string().optional(),
 
   // KeeperHub
   KEEPERHUB_API_KEY: z.string().min(1, "KEEPERHUB_API_KEY is required"),
