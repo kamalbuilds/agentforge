@@ -13,6 +13,22 @@ const GENESIS_PORTRAITS: Record<string, string> = {
   drogon: "/agents/drogon.png",
 };
 
+const PORTRAIT_ROTATION = [
+  "/agents/aurelius.png",
+  "/agents/vesper.png",
+  "/agents/borealis.png",
+  "/agents/cassia.png",
+  "/agents/drogon.png",
+];
+
+function portraitForToken(name: string, tokenId: string | number): string {
+  const slug = name.toLowerCase().trim();
+  if (GENESIS_PORTRAITS[slug]) return GENESIS_PORTRAITS[slug];
+  const id = typeof tokenId === "number" ? tokenId : parseInt(String(tokenId), 10);
+  const idx = (Number.isFinite(id) ? id - 1 : 0) % PORTRAIT_ROTATION.length;
+  return PORTRAIT_ROTATION[(idx + PORTRAIT_ROTATION.length) % PORTRAIT_ROTATION.length];
+}
+
 interface AgentCardProps {
   tokenId: string | number;
   name: string;
@@ -45,19 +61,9 @@ export function AgentCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            {(() => {
-              const slug = name.toLowerCase().trim();
-              const portrait = GENESIS_PORTRAITS[slug];
-              return portrait ? (
-                <div className="hex-clip w-10 h-10 shrink-0 overflow-hidden relative">
-                  <Image src={portrait} alt={name} fill className="object-cover" sizes="40px" />
-                </div>
-              ) : (
-                <div className="hex-clip w-10 h-10 bg-gradient-to-br from-[#7c3aed]/30 to-[#dc2626]/30 flex items-center justify-center shrink-0">
-                  <Cpu className="w-4 h-4 text-[#7c3aed]" />
-                </div>
-              );
-            })()}
+            <div className="hex-clip w-12 h-12 shrink-0 overflow-hidden relative bg-[#0a0a14]">
+              <Image src={portraitForToken(name, tokenId)} alt={name} fill className="object-cover" sizes="48px" />
+            </div>
             <div>
               <h3 className="font-bold text-[#ededed] truncate max-w-[120px]">{name}</h3>
               <p className="text-xs text-[#6b7280] font-mono">#{tokenId}</p>
