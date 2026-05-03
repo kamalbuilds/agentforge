@@ -1,67 +1,55 @@
 import { Wallet } from "ethers";
-import { keccak256, toHex, type Hex } from "viem";
+import { keccak256, encodePacked, type Hex } from "viem";
 import { getConfig } from "../config.js";
 import { logger } from "./logger.js";
 
 /**
- * EIP-3668 CCIP-Read response signing
- * Signs the result according to EIP-3668 specification for on-chain verification
+ * EIP-3668 CCIP-Read response signing.
+ *
+ * Message hash follows the reference OffchainResolver:
+ *   keccak256(abi.encodePacked(
+ *     hex"1900",
+ *     address(resolverContract),   // = sender (the on-chain resolver that emitted OffchainLookup)
+ *     uint64(expires),
+ *     keccak256(request),          // the original calldata (extraData passed through)
+ *     keccak256(result)
+ *   ))
+ *
+ * The on-chain resolveWithProof callback verifies the exact same hash.
  */
 export async function signCCIPResponse(
-  sender: string,
-  data: string,
-  result: string,
-  expires: number
+  sender: string,           // resolver contract address (from OffchainLookup.sender)
+  request: string,          // original calldata / extraData
+  result: string,           // ABI-encoded result bytes
+  expires: number           // unix timestamp
 ): Promise<{ signature: string }> {
   const config = getConfig();
   const signer = new Wallet(config.CCIP_SIGNER_KEY);
 
-  // Encode the message: keccak256(abi.encode(sender, request, result, expires))
-  const senderHex = sender.startsWith("0x") ? sender : `0x${sender}`;
-  const dataHex = data.startsWith("0x") ? data : `0x${data}`;
-  const resultHex = result.startsWith("0x") ? result : `0x${result}`;
-  const expiresHex = toHex(expires, { size: 32 });
+  const senderAddr = sender.startsWith("0x") ? (sender as `0x${string}`) : (`0x${sender}` as `0x${string}`);
+  const requestHex = request.startsWith("0x") ? (request as `0x${string}`) : (`0x${request}` as `0x${string}`);
+  const resultHex  = result.startsWith("0x")  ? (result  as `0x${string}`) : (`0x${result}`  as `0x${string}`);
 
-  // Create message buffer: pack all values together
-  const message = `${senderHex}${dataHex.slice(2)}${resultHex.slice(2)}${expiresHex.slice(2)}`;
-  const messageHash = keccak256(message as Hex);
+  const requestHash = keccak256(requestHex);
+  const resultHash  = keccak256(resultHex);
+  const expiresBigInt = BigInt(expires);
 
-  // Sign the message
+  // Pack: 0x1900 + senderAddr + expires (uint64) + keccak256(request) + keccak256(result)
+  const packed = encodePacked(
+    ["bytes2", "address", "uint64", "bytes32", "bytes32"],
+    ["0x1900", senderAddr, expiresBigInt, requestHash, resultHash]
+  );
+
+  const messageHash = keccak256(packed);
+
+  // Sign with ethers (raw keccak, not personal_sign — matches on-chain ECDSA.recover)
   const sig = signer.signingKey.sign(messageHash);
-  const signature = `${sig.r}${sig.s.slice(2)}${toHex(sig.v).slice(2)}`;
+
+  // Compact signature: r (32) + s (32) + v (1)
+  const v = sig.v.toString(16).padStart(2, "0");
+  const signature = `${sig.r}${sig.s.slice(2)}${v}` as `0x${string}`;
 
   logger.debug({ messageHash, signature }, "CCIP response signed");
 
   return { signature };
-}
-
-/**
- * Verify a CCIP signature matches expected signer
- */
-export function verifyCCIPSignature(
-  sender: string,
-  data: string,
-  result: string,
-  expires: number,
-  signature: string,
-  expectedSigner: string
-): boolean {
-  try {
-    const senderHex = sender.startsWith("0x") ? sender : `0x${sender}`;
-    const dataHex = data.startsWith("0x") ? data : `0x${data}`;
-    const resultHex = result.startsWith("0x") ? result : `0x${result}`;
-    const expiresHex = toHex(expires, { size: 32 });
-
-    const message = `${senderHex}${dataHex.slice(2)}${resultHex.slice(2)}${expiresHex.slice(2)}`;
-    const messageHash = keccak256(message as Hex);
-
-    // For production, use ethers.recoverAddress or similar
-    // This is a simplified check
-    logger.debug({ messageHash, signature, expectedSigner }, "Verifying CCIP signature");
-
-    return signature.toLowerCase().startsWith("0x");
-  } catch (error) {
-    logger.error({ error }, "CCIP signature verification failed");
-    return false;
-  }
 }
