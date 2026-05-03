@@ -266,6 +266,8 @@ export default function ArenaPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a14] relative">
+      {/* Arena floor texture - subtle hex grid background */}
+      <div className="pointer-events-none fixed inset-0 z-0" style={{ backgroundImage: "url('/arena/floor.jpg')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.08, mixBlendMode: "overlay" }} />
       <div className="pointer-events-none fixed inset-0 z-0" style={{ background: "radial-gradient(ellipse 50% 30% at 10% 15%, rgba(220,38,38,0.05) 0%, transparent 55%)" }} />
 
       <Nav />
