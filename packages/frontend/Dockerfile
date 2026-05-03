@@ -4,12 +4,16 @@ WORKDIR /app
 
 # Copy pnpm configuration and lock file
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY tsconfig.base.json ./
 COPY packages/frontend/package.json ./packages/frontend/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/agent/package.json ./packages/agent/
+COPY packages/gateway/package.json ./packages/gateway/
 
 # Install dependencies
 RUN npm install -g pnpm && \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile --shamefully-hoist
 
 # Copy source code
 COPY packages/frontend ./packages/frontend

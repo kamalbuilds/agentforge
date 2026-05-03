@@ -1,4 +1,5 @@
 "use client";
+import { waitForReceiptWithRetry } from "@/lib/wait-receipt";
 
 import { useState, useEffect } from "react";
 import { Nav } from "@/components/nav";
@@ -444,7 +445,7 @@ function ProposeMatchDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     setIsLoading(true);
     try {
       const hash = await writeContractAsync({ address: addresses[CHAIN_ID].Arena, abi: ArenaAbi as Abi, functionName: "proposeMatch", args: [BigInt(myAgent), BigInt(opponent), stakeWei], value: stakeWei, chainId: CHAIN_ID });
-      await publicClient.waitForTransactionReceipt({ hash });
+      await waitForReceiptWithRetry(publicClient, hash);
       toast.success(`Match proposed! Waiting for Agent #${opponent} to accept.`);
       onOpenChange(false);
     } catch (error) {

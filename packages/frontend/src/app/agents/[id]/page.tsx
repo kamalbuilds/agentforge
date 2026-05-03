@@ -1,4 +1,5 @@
 "use client";
+import { waitForReceiptWithRetry } from "@/lib/wait-receipt";
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
@@ -129,7 +130,7 @@ function ChallengeDialog({ myAgentId, open, onOpenChange }: { myAgentId: string;
         value: stakeWei,
         chainId: CHAIN_ID,
       });
-      await publicClient.waitForTransactionReceipt({ hash });
+      await waitForReceiptWithRetry(publicClient, hash);
       toast.success("Challenge proposed! Waiting for acceptance.");
       onOpenChange(false);
     } catch (error) {

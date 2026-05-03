@@ -1,4 +1,5 @@
 "use client";
+import { waitForReceiptWithRetry } from "@/lib/wait-receipt";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -112,13 +113,13 @@ export function BreedForm() {
       if (!approvedA) {
         setStatusMsg(`Approving agent #${data.parentA} for breeding...`);
         const hash = await writeContractAsync({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "setBreedingApproval" as never, args: [idA, true] as never, chainId: CHAIN_ID });
-        await publicClient.waitForTransactionReceipt({ hash });
+        await waitForReceiptWithRetry(publicClient, hash);
       }
 
       if (!approvedB) {
         setStatusMsg(`Approving agent #${data.parentB} for breeding...`);
         const hash = await writeContractAsync({ address: addresses[CHAIN_ID].BreedingMarket, abi: BreedingMarketAbi as Abi, functionName: "setBreedingApproval" as never, args: [idB, true] as never, chainId: CHAIN_ID });
-        await publicClient.waitForTransactionReceipt({ hash });
+        await waitForReceiptWithRetry(publicClient, hash);
       }
 
       setStatusMsg("Submitting breed request...");
@@ -132,7 +133,7 @@ export function BreedForm() {
       });
 
       setStatusMsg("Waiting for confirmation...");
-      await publicClient.waitForTransactionReceipt({ hash: breedHash });
+      await waitForReceiptWithRetry(publicClient, breedHash);
 
       toast.success("Breed request submitted! Offspring will mint when the operator fulfills.");
       setValue("parentA", "");

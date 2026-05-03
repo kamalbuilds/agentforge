@@ -1,4 +1,5 @@
 "use client";
+import { waitForReceiptWithRetry } from "@/lib/wait-receipt";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -142,7 +143,7 @@ export function MintForm() {
       setMintTxHash(txHash);
       setStep("Waiting for confirmation...");
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const receipt = await waitForReceiptWithRetry(publicClient, txHash);
       if (receipt.status !== "success") throw new Error("Transaction reverted");
 
       let newTokenId: bigint | undefined;
