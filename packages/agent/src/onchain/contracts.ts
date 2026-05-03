@@ -13,7 +13,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { zeroGGalileo } from "@agentforge/shared";
-import { agentForgeAddresses } from "@agentforge/shared";
+import { addresses } from "@agentforge/shared";
 import { getConfig } from "../config.js";
 import { logger } from "../logger.js";
 
@@ -69,7 +69,7 @@ export function getWalletClient(): WalletClient {
 // ─── Addresses ───────────────────────────────────────────────────────────────
 
 export function getArenaAddress(): Hex {
-  const addr = agentForgeAddresses[16601].arenaHub;
+  const addr = addresses[16602].Arena;
   if (!addr) {
     throw new Error(
       "NOT_IMPLEMENTED: Arena contract address not set in @agentforge/shared — deploy contracts first"
@@ -79,7 +79,7 @@ export function getArenaAddress(): Hex {
 }
 
 export function getBreedingMarketAddress(): Hex {
-  const addr = agentForgeAddresses[16601].breedingHub;
+  const addr = addresses[16602].BreedingMarket;
   if (!addr) {
     throw new Error(
       "NOT_IMPLEMENTED: BreedingMarket contract address not set in @agentforge/shared — deploy contracts first"
@@ -89,7 +89,7 @@ export function getBreedingMarketAddress(): Hex {
 }
 
 export function getAgentINFTAddress(): Hex {
-  const addr = agentForgeAddresses[16601].agentNft;
+  const addr = addresses[16602].AgentINFT;
   if (!addr) {
     throw new Error(
       "NOT_IMPLEMENTED: AgentINFT contract address not set in @agentforge/shared — deploy contracts first"

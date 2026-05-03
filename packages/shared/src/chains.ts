@@ -1,7 +1,7 @@
 import { defineChain } from "viem";
 
 export const zeroGGalileo = defineChain({
-  id: 16601,
+  id: 16602,
   name: "0G Galileo Testnet",
   nativeCurrency: {
     decimals: 18,

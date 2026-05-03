@@ -19,7 +19,7 @@ import { useReadContract, useReadContracts } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
 import type { Abi } from "viem";
 
-const CHAIN_ID = 16601 as const;
+const CHAIN_ID = 16602 as const;
 
 export default function AgentDetailPage({
   params,

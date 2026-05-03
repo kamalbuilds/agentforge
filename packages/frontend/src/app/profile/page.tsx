@@ -21,7 +21,7 @@ import { AgentINFTAbi, ArenaAbi, RoyaltyVaultAbi, addresses } from "@agentforge/
 import type { Abi } from "viem";
 import { formatEther } from "viem";
 
-const CHAIN_ID = 16601 as const;
+const CHAIN_ID = 16602 as const;
 
 interface OwnedAgent {
   tokenId: bigint;

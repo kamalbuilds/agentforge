@@ -10,7 +10,7 @@ import { usePublicClient, useReadContracts } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
 import type { Abi } from "viem";
 
-const CHAIN_ID = 16601 as const;
+const CHAIN_ID = 16602 as const;
 
 interface AgentOnChain {
   tokenId: bigint;
@@ -224,7 +224,7 @@ export default function AgentsPage() {
               <p className="text-xs font-mono text-[#7c3aed] uppercase tracking-widest">Registry</p>
               <h1 className="text-5xl font-black text-[#ededed] tracking-tight">Agent Gallery</h1>
               <p className="text-[#6b7280] max-w-lg leading-relaxed">
-                All minted ERC-7857 iNFT agents on 0G Galileo (chainId 16601). Sorted by ELO ranking.
+                All minted ERC-7857 iNFT agents on 0G Galileo (chainId 16602). Sorted by ELO ranking.
               </p>
             </div>
             <Link href="/mint">

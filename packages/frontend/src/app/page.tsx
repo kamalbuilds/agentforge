@@ -7,7 +7,7 @@ import { ArrowRight, Zap, Dna, Trophy, Swords, Cpu } from "lucide-react";
 import { useReadContract } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, BreedingMarketAbi, addresses } from "@agentforge/shared";
 
-const CHAIN_ID = 16601 as const;
+const CHAIN_ID = 16602 as const;
 
 function HeroStats() {
   const { data: totalSupply } = useReadContract({

@@ -12,4 +12,4 @@ export const wagmiConfig = getDefaultConfig({
   ssr: true,
 });
 
-export const TARGET_CHAIN_ID = 16601; // 0G Galileo Testnet
+export const TARGET_CHAIN_ID = 16602; // 0G Galileo Testnet

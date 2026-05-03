@@ -5,7 +5,7 @@ import { AGENT_INFT_ABI, ARENA_HUB_ABI } from "../onchain/abis.js";
 import { signCCIPResponse } from "../lib/eip3668.js";
 import { logger } from "../lib/logger.js";
 import { getConfig } from "../config.js";
-import { agentForgeAddresses } from "@agentforge/shared";
+import { addresses } from "@agentforge/shared";
 
 interface CCIPRequest {
   sender: string;
@@ -36,7 +36,7 @@ router.post("/lookup", async (c) => {
     }
 
     const config = getConfig();
-    const chainId = 16601; // 0G Galileo
+    const chainId = 16602; // 0G Galileo
 
     // Decode the function call
     let decodedData;
@@ -50,8 +50,8 @@ router.post("/lookup", async (c) => {
       return c.json({ error: "Invalid function data" }, 400);
     }
 
-    const agentForgeAddrs = agentForgeAddresses[chainId];
-    if (!agentForgeAddrs?.agentNft || !agentForgeAddrs?.arenaHub) {
+    const agentForgeAddrs = addresses[chainId as keyof typeof addresses];
+    if (!agentForgeAddrs?.AgentINFT || !agentForgeAddrs?.Arena) {
       logger.error({ chainId }, "Contract addresses not configured");
       return c.json(
         { error: "Contract addresses not configured for this chain" },
@@ -72,7 +72,7 @@ router.post("/lookup", async (c) => {
 
       try {
         const owner = await clients.zeroG.readContract({
-          address: agentForgeAddrs.agentNft as `0x${string}`,
+          address: agentForgeAddrs.AgentINFT as `0x${string}`,
           abi: AGENT_INFT_ABI,
           functionName: "ownerOf",
           args: [tokenId],
