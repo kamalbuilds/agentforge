@@ -49,10 +49,18 @@ async function encryptFile(file: File): Promise<{ encryptedBlob: Blob; keyBytes:
   return { encryptedBlob: new Blob([combined], { type: "application/octet-stream" }), keyBytes };
 }
 
-async function uploadToGateway(blob: Blob, name: string): Promise<{ cid: string }> {
-  const formData = new FormData();
-  formData.append("file", blob, name);
-  const res = await fetch(`${GATEWAY_URL}/storage/upload`, { method: "POST", body: formData });
+async function uploadToGateway(blob: Blob, _name: string): Promise<{ cid: string }> {
+  // Gateway /storage/upload expects JSON: { buffer: base64string }
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]!);
+  const base64 = btoa(binary);
+  const res = await fetch(`${GATEWAY_URL}/storage/upload`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ buffer: base64 }),
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`Gateway upload failed: ${text}`);

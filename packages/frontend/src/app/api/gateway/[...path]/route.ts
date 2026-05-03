@@ -51,9 +51,5 @@ export const DELETE = proxy;
 export const OPTIONS = proxy;
 export const PATCH = proxy;
 
-// Disable body size limit for file uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Increase body size limit for file uploads (App Router route segment config)
+export const maxDuration = 60;
