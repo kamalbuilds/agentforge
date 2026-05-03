@@ -16,8 +16,10 @@ export function LiveArena() {
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
+  const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
+
   useEffect(() => {
-    const eventSource = new EventSource("/api/arena/stream");
+    const eventSource = new EventSource(`${GATEWAY_URL}/arena/stream`);
     eventSource.onopen    = () => setIsConnected(true);
     eventSource.onmessage = (event) => {
       try {
