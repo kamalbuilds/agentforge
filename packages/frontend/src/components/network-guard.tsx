@@ -1,15 +1,17 @@
 "use client";
 
-import { useChainId, useSwitchChain } from "wagmi";
+import { useChainId, useSwitchChain, useAccount } from "wagmi";
 import { TARGET_CHAIN_ID } from "@/lib/wagmi";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 export function NetworkGuard({ children }: { children: React.ReactNode }) {
   const chainId = useChainId();
+  const { isConnected } = useAccount();
   const { switchChain, isPending } = useSwitchChain();
 
-  if (chainId !== TARGET_CHAIN_ID) {
+  // Only gate when wallet is connected and on wrong chain
+  if (isConnected && chainId !== TARGET_CHAIN_ID) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
         <div className="glass-card rounded-2xl p-10 max-w-sm w-full text-center space-y-6">

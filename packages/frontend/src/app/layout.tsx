@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Space_Grotesk, Space_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
+import { NetworkGuard } from "@/components/network-guard";
 import "./globals.css";
 
 const geist = Geist({
@@ -44,7 +45,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} dark`}>
       <body className="bg-[#0a0a14] text-[#ededed] font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <NetworkGuard>{children}</NetworkGuard>
+        </Providers>
         <Toaster />
       </body>
     </html>
