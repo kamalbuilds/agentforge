@@ -2,10 +2,9 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ConnectButton } from "@/components/connect-button";
+import { Nav } from "@/components/nav";
 import { LineageTree } from "@/components/lineage-tree";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -14,12 +13,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Swords, Dna, ArrowLeft, Cpu } from "lucide-react";
-import { useReadContract, useReadContracts } from "wagmi";
+import { Swords, Dna, ArrowLeft, Cpu, ExternalLink } from "lucide-react";
+import { useReadContract } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
 import type { Abi } from "viem";
 
 const CHAIN_ID = 16602 as const;
+
+function getRarity(elo: number) {
+  if (elo >= 1800) return { label: "legendary", color: "#fbbf24" };
+  if (elo >= 1500) return { label: "epic",      color: "#a855f7" };
+  if (elo >= 1200) return { label: "rare",      color: "#3b82f6" };
+  return                 { label: "common",    color: "#9ca3af" };
+}
 
 export default function AgentDetailPage({
   params,
@@ -29,227 +35,237 @@ export default function AgentDetailPage({
   const { id } = use(params);
   const tokenId = BigInt(id);
 
-  const { data: owner, isLoading: ownerLoading } = useReadContract({
-    address: addresses[CHAIN_ID].AgentINFT,
-    abi: AgentINFTAbi as Abi,
-    functionName: "ownerOf",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
+  const { data: owner, isLoading: ownerLoading } = useReadContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "ownerOf",      args: [tokenId], chainId: CHAIN_ID });
+  const { data: elo }        = useReadContract({ address: addresses[CHAIN_ID].Arena,     abi: ArenaAbi      as Abi, functionName: "getElo",     args: [tokenId], chainId: CHAIN_ID });
+  const { data: wins }       = useReadContract({ address: addresses[CHAIN_ID].Arena,     abi: ArenaAbi      as Abi, functionName: "wins",       args: [tokenId], chainId: CHAIN_ID });
+  const { data: losses }     = useReadContract({ address: addresses[CHAIN_ID].Arena,     abi: ArenaAbi      as Abi, functionName: "losses",     args: [tokenId], chainId: CHAIN_ID });
+  const { data: generation } = useReadContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi  as Abi, functionName: "generation", args: [tokenId], chainId: CHAIN_ID });
+  const { data: tokenData }  = useReadContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi  as Abi, functionName: "getTokenData", args: [tokenId], chainId: CHAIN_ID });
+  const { data: lineageData } = useReadContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "lineage",    args: [tokenId], chainId: CHAIN_ID });
 
-  const { data: elo } = useReadContract({
-    address: addresses[CHAIN_ID].Arena,
-    abi: ArenaAbi as Abi,
-    functionName: "getElo",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const { data: wins } = useReadContract({
-    address: addresses[CHAIN_ID].Arena,
-    abi: ArenaAbi as Abi,
-    functionName: "wins",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const { data: losses } = useReadContract({
-    address: addresses[CHAIN_ID].Arena,
-    abi: ArenaAbi as Abi,
-    functionName: "losses",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const { data: generation } = useReadContract({
-    address: addresses[CHAIN_ID].AgentINFT,
-    abi: AgentINFTAbi as Abi,
-    functionName: "generation",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const { data: tokenData } = useReadContract({
-    address: addresses[CHAIN_ID].AgentINFT,
-    abi: AgentINFTAbi as Abi,
-    functionName: "getTokenData",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const { data: lineageData } = useReadContract({
-    address: addresses[CHAIN_ID].AgentINFT,
-    abi: AgentINFTAbi as Abi,
-    functionName: "lineage",
-    args: [tokenId],
-    chainId: CHAIN_ID,
-  });
-
-  const eloVal = elo !== undefined ? Number(elo as bigint) : 1200;
-  const winsVal = wins !== undefined ? Number(wins as bigint) : 0;
-  const lossesVal = losses !== undefined ? Number(losses as bigint) : 0;
-  const genVal = generation !== undefined ? Number(generation as bigint) : 0;
+  const eloVal   = elo        !== undefined ? Number(elo as bigint)        : 1200;
+  const winsVal  = wins       !== undefined ? Number(wins as bigint)       : 0;
+  const lossVal  = losses     !== undefined ? Number(losses as bigint)     : 0;
+  const genVal   = generation !== undefined ? Number(generation as bigint) : 0;
   const ownerAddr = (owner as string | undefined) ?? "";
-  const td = tokenData as { parentA: bigint; parentB: bigint } | undefined;
+  const td       = tokenData as { parentA: bigint; parentB: bigint } | undefined;
   const ancestors = (lineageData as bigint[] | undefined) ?? [];
 
-  const winRate =
-    winsVal + lossesVal > 0
-      ? ((winsVal / (winsVal + lossesVal)) * 100).toFixed(1)
-      : "—";
-
+  const winRate  = winsVal + lossVal > 0 ? ((winsVal / (winsVal + lossVal)) * 100).toFixed(1) : null;
+  const rarity   = getRarity(eloVal);
   const eloPercent = Math.min(100, Math.max(0, ((eloVal - 800) / 2400) * 100));
 
   if (ownerLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <span className="text-[#7c3aed] text-4xl font-mono animate-agent-pulse block">◢◤</span>
-          <p className="text-[#6b7280] font-mono text-sm">Loading agent #{id}...</p>
+      <div className="min-h-screen bg-[#0a0a14]">
+        <Nav />
+        <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 73px)" }}>
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 rounded-xl mx-auto animate-agent-pulse" style={{ background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Cpu className="w-6 h-6" style={{ color: "#7c3aed" }} />
+            </div>
+            <p className="text-[#6b7280] font-mono text-xs">Loading agent #{id}...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative">
+    <div className="min-h-screen bg-[#0a0a14] relative">
       <div
         className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 50% 10%, rgba(124,58,237,0.08) 0%, transparent 60%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 60% 35% at 50% 8%, rgba(124,58,237,0.07) 0%, transparent 55%)" }}
       />
 
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse">◢◤</span>
-            <span className="text-xl font-bold tracking-tight text-[#ededed]">AgentForge</span>
-          </Link>
-          <ConnectButton />
-        </div>
-      </nav>
+      <Nav />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 pb-32 space-y-10">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-10 pb-32 space-y-10">
+
+        {/* Back link */}
         <Link
           href="/agents"
-          className="inline-flex items-center gap-2 text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-white/30 hover:text-white/60 transition-colors font-mono"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Gallery
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Gallery
         </Link>
 
-        {/* Hero Panel */}
-        <div className="glass-card rounded-2xl p-8">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Hex avatar */}
-            <div className="hex-clip w-24 h-24 bg-gradient-to-br from-[#7c3aed]/40 to-[#dc2626]/40 flex items-center justify-center shrink-0">
-              <Cpu className="w-10 h-10 text-[#7c3aed]" />
-            </div>
+        {/* ── Hero dossier panel ─────────────────────────────────────────────── */}
+        <div
+          className="glass-card hud-corners rounded-2xl overflow-hidden"
+          style={{ borderColor: `${rarity.color}25` }}
+        >
+          {/* Rarity accent bar top */}
+          <div className="h-[2px] w-full" style={{ background: rarity.color, opacity: 0.5 }} />
 
-            <div className="flex-1 space-y-5">
-              <div className="flex items-start justify-between flex-wrap gap-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-4xl font-black text-[#ededed] tracking-tight">
-                      Agent #{id}
-                    </h1>
-                    <Badge className="bg-[#7c3aed]/20 text-[#7c3aed] border border-[#7c3aed]/30 text-xs font-mono">
-                      Gen {genVal}
-                    </Badge>
-                  </div>
-                  {ownerAddr && (
-                    <p className="text-sm text-[#6b7280] font-mono">
-                      Owner: {ownerAddr.slice(0, 6)}...{ownerAddr.slice(-4)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <Link href="/breed">
-                    <Button className="bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 rounded-xl font-semibold transition-all">
-                      <Dna className="w-4 h-4 mr-2" />
-                      Breed
-                    </Button>
-                  </Link>
-                  <Link href="/arena">
-                    <Button className="bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl font-semibold transition-all hover:-translate-y-[2px]">
-                      <Swords className="w-4 h-4 mr-2" />
-                      Challenge
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+          <div className="p-6 md:p-8">
+            <div className="flex flex-col md:flex-row gap-8">
 
-              {/* Stats row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: "ELO Rating", value: eloVal.toString(), color: "#7c3aed" },
-                  { label: "Win Rate", value: winRate === "—" ? "—" : `${winRate}%`, color: "#10b981" },
-                  { label: "Wins", value: winsVal.toString(), color: "#10b981" },
-                  { label: "Losses", value: lossesVal.toString(), color: "#dc2626" },
-                ].map((stat) => (
-                  <div key={stat.label} className="space-y-1">
-                    <p className="text-xs text-[#6b7280] font-mono uppercase tracking-wider">
-                      {stat.label}
-                    </p>
-                    <p
-                      className="text-2xl font-black font-mono"
-                      style={{ color: stat.color }}
-                    >
-                      {stat.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* ELO bar */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-[#6b7280] font-mono">
-                  <span>ELO Progress</span>
-                  <span>{eloVal} / 3200</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              {/* Left: large avatar portrait */}
+              <div className="shrink-0">
+                <div
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-2xl flex items-center justify-center relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(10,10,20,0.9) 100%)`,
+                    border: `1.5px solid ${rarity.color}40`,
+                  }}
+                >
+                  <Cpu
+                    className="w-12 h-12 md:w-16 md:h-16 relative z-10"
+                    style={{ color: rarity.color, opacity: 0.7 }}
+                  />
+                  {/* Glow */}
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#dc2626] transition-all duration-500"
-                    style={{ width: `${eloPercent}%` }}
+                    className="absolute inset-0 rounded-2xl"
+                    style={{ background: `radial-gradient(circle at 50% 50%, ${rarity.color}18 0%, transparent 60%)` }}
                   />
                 </div>
+
+                {/* Rarity badge below avatar */}
+                <div className="mt-3 text-center">
+                  <span
+                    className="status-pill"
+                    style={{
+                      background: `${rarity.color}15`,
+                      color: rarity.color,
+                      border: `1px solid ${rarity.color}30`,
+                    }}
+                  >
+                    {rarity.label}
+                  </span>
+                </div>
               </div>
 
-              {/* Token data */}
-              {td && (
-                <div className="pt-2 border-t border-white/[0.06] grid grid-cols-2 gap-3 text-xs font-mono">
-                  {td.parentA > 0n && (
-                    <div>
-                      <span className="text-[#6b7280]">Parent A: </span>
-                      <Link
-                        href={`/agents/${td.parentA.toString()}`}
-                        className="text-[#7c3aed] hover:underline"
+              {/* Right: identity + stats */}
+              <div className="flex-1 space-y-5">
+                {/* Name row */}
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div>
+                    <h1
+                      className="text-4xl font-semibold text-[#ededed] mb-1"
+                      style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.02em" }}
+                    >
+                      Agent <span style={{ color: rarity.color }}>#{id}</span>
+                    </h1>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span
+                        className="text-xs font-mono"
+                        style={{ color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-space-mono), monospace" }}
                       >
-                        #{td.parentA.toString()}
-                      </Link>
+                        GEN {genVal}
+                      </span>
+                      {ownerAddr && (
+                        <a
+                          href={`https://chainscan-galileo.0g.ai/address/${ownerAddr}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-mono hover:text-white/50 transition-colors"
+                          style={{ color: "rgba(255,255,255,0.25)", fontFamily: "var(--font-space-mono), monospace" }}
+                        >
+                          {ownerAddr.slice(0, 8)}...{ownerAddr.slice(-6)}
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
                     </div>
-                  )}
-                  {td.parentB > 0n && (
-                    <div>
-                      <span className="text-[#6b7280]">Parent B: </span>
-                      <Link
-                        href={`/agents/${td.parentB.toString()}`}
-                        className="text-[#7c3aed] hover:underline"
+                  </div>
+
+                  {/* CTAs */}
+                  <div className="flex gap-2">
+                    <Link href="/breed">
+                      <Button
+                        className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+                        style={{
+                          background: "rgba(16,185,129,0.1)",
+                          border: "1px solid rgba(16,185,129,0.25)",
+                          color: "#10b981",
+                          fontFamily: "var(--font-space-grotesk), sans-serif",
+                        }}
                       >
-                        #{td.parentB.toString()}
-                      </Link>
-                    </div>
-                  )}
+                        <Dna className="w-3.5 h-3.5 mr-1.5" />
+                        Breed
+                      </Button>
+                    </Link>
+                    <Link href="/arena">
+                      <Button
+                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-[1px]"
+                        style={{
+                          background: "#dc2626",
+                          fontFamily: "var(--font-space-grotesk), sans-serif",
+                        }}
+                      >
+                        <Swords className="w-3.5 h-3.5 mr-1.5" />
+                        Challenge
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              )}
+
+                {/* Stat grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: "ELO Rating",  value: eloVal.toString(), color: rarity.color },
+                    { label: "Win Rate",    value: winRate ? `${winRate}%` : "—", color: "#10b981" },
+                    { label: "Wins",        value: winsVal.toString(),  color: "#10b981" },
+                    { label: "Losses",      value: lossVal.toString(),  color: "#ef4444" },
+                  ].map((s) => (
+                    <div key={s.label} className="space-y-1">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-[#6b7280]">{s.label}</p>
+                      <p
+                        className="text-2xl font-bold tabular"
+                        style={{ fontFamily: "var(--font-space-mono), monospace", color: s.color }}
+                      >
+                        {s.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ELO progress bar */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[10px] font-mono text-[#6b7280]">
+                    <span>ELO Progress</span>
+                    <span style={{ fontFamily: "var(--font-space-mono), monospace" }}>{eloVal} / 3200</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${eloPercent}%`, background: rarity.color }}
+                    />
+                  </div>
+                </div>
+
+                {/* Parent links */}
+                {td && (td.parentA > 0n || td.parentB > 0n) && (
+                  <div className="pt-3 border-t border-white/[0.05] flex flex-wrap gap-4 text-xs font-mono">
+                    {td.parentA > 0n && (
+                      <div>
+                        <span style={{ color: "rgba(255,255,255,0.3)" }}>Parent A: </span>
+                        <Link href={`/agents/${td.parentA.toString()}`} className="text-[#7c3aed] hover:underline">
+                          #{td.parentA.toString()}
+                        </Link>
+                      </div>
+                    )}
+                    {td.parentB > 0n && (
+                      <div>
+                        <span style={{ color: "rgba(255,255,255,0.3)" }}>Parent B: </span>
+                        <Link href={`/agents/${td.parentB.toString()}`} className="text-[#7c3aed] hover:underline">
+                          #{td.parentB.toString()}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Lineage — ancestors from chain */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-black text-[#ededed] tracking-tight">
+        {/* ── Lineage ───────────────────────────────────────────────────────── */}
+        <section className="space-y-4">
+          <h2
+            className="text-xl font-semibold text-[#ededed]"
+            style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.01em" }}
+          >
             Lineage
           </h2>
           {ancestors.length > 0 || (td && (td.parentA > 0n || td.parentB > 0n)) ? (
@@ -267,42 +283,45 @@ export default function AgentDetailPage({
               }}
             />
           ) : (
-            <div className="glass-card rounded-2xl p-8 text-center">
-              {td && td.parentA === 0n && td.parentB === 0n ? (
-                <p className="text-[#6b7280] text-sm font-mono">
-                  Genesis agent — no parents on-chain.
-                </p>
-              ) : (
-                <p className="text-[#6b7280] text-sm font-mono">
-                  Loading lineage from chain...
-                </p>
-              )}
+            <div className="glass-card rounded-xl p-8 text-center">
+              <p className="text-white/30 text-sm font-mono">
+                {td && td.parentA === 0n && td.parentB === 0n
+                  ? "Genesis agent — no parents on-chain."
+                  : "Loading lineage from chain..."}
+              </p>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Match History placeholder — events require viem getLogs */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-black text-[#ededed] tracking-tight">
+        {/* ── Match history ─────────────────────────────────────────────────── */}
+        <section className="space-y-4">
+          <h2
+            className="text-xl font-semibold text-[#ededed]"
+            style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.01em" }}
+          >
             Match History
           </h2>
-          <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Match</TableHead>
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Opponent</TableHead>
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Result</TableHead>
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">ELO Change</TableHead>
-                  <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider text-right">Block</TableHead>
+                <TableRow className="border-white/[0.05] hover:bg-white/[0.01]">
+                  {["Match", "Opponent", "Result", "ELO Change", "Block"].map((h) => (
+                    <TableHead
+                      key={h}
+                      className="text-[10px] font-mono uppercase tracking-widest"
+                      style={{ color: "rgba(255,255,255,0.3)" }}
+                    >
+                      {h}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <MatchHistoryRows tokenId={tokenId} wins={winsVal} losses={lossesVal} />
+                <MatchHistoryRows tokenId={tokenId} wins={winsVal} losses={lossVal} />
               </TableBody>
             </Table>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
@@ -319,27 +338,28 @@ function MatchHistoryRows({
 }) {
   if (wins + losses === 0) {
     return (
-      <TableRow className="border-white/[0.06]">
-        <TableCell colSpan={5} className="text-center py-12 text-[#6b7280] text-sm">
-          No matches played yet
+      <TableRow className="border-white/[0.05]">
+        <TableCell colSpan={5} className="text-center py-12">
+          <p className="text-white/25 text-sm font-mono">No matches played yet.</p>
         </TableCell>
       </TableRow>
     );
   }
 
-  // Summary row when matches exist but full event log fetch not yet wired
   return (
-    <TableRow className="border-white/[0.06]">
-      <TableCell colSpan={5} className="text-center py-8 text-[#6b7280] text-sm font-mono">
-        {wins + losses} match(es) on-chain · W:{wins} L:{losses} · full log on{" "}
-        <a
-          href={`https://chainscan-galileo.0g.ai/address/${addresses[CHAIN_ID].Arena}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#7c3aed] hover:underline"
-        >
-          0G Explorer
-        </a>
+    <TableRow className="border-white/[0.05]">
+      <TableCell colSpan={5} className="text-center py-8">
+        <p className="text-white/30 text-sm font-mono">
+          {wins + losses} match(es) recorded · W:{wins} L:{losses} ·{" "}
+          <a
+            href={`https://chainscan-galileo.0g.ai/address/${addresses[CHAIN_ID].Arena}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#7c3aed] hover:underline"
+          >
+            View on 0G Explorer
+          </a>
+        </p>
       </TableCell>
     </TableRow>
   );
