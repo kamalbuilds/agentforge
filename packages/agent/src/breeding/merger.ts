@@ -2,7 +2,11 @@
  * Breeding merger: poll BreedRequested events, fetch parents, merge, upload, submit onchain.
  */
 import { randomBytes } from "node:crypto";
-import { keccak256, encodeAbiParameters, parseAbiParameters, type Hex } from "viem";
+import { keccak256, encodeAbiParameters, parseAbiParameters, parseAbiItem, type Hex } from "viem";
+
+const BREED_REQUESTED_EVENT = parseAbiItem(
+  "event BreedRequested(uint256 indexed reqId, uint256 indexed parentA, uint256 indexed parentB, address requester, uint256 fee, uint96 royaltyBpsToParents)"
+);
 import { ethers } from "ethers";
 import { getConfig } from "../config.js";
 import { logger } from "../logger.js";
@@ -10,7 +14,6 @@ import {
   getPublicClient,
   getBreedingMarketAddress,
   getAgentINFTAddress,
-  BREEDING_MARKET_ABI,
   AGENT_INFT_ABI,
   encodeFulfillBreed,
 } from "../onchain/contracts.js";
@@ -44,10 +47,9 @@ export async function startBreedingMerger() {
       const toBlock = currentBlock;
 
       if (fromBlock <= toBlock) {
-        // @ts-ignore - viem API mismatch
         const logs = await publicClient.getLogs({
           address: getBreedingMarketAddress(),
-          events: BREEDING_MARKET_ABI,
+          event: BREED_REQUESTED_EVENT,
           fromBlock,
           toBlock,
         });
