@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { BreedForm } from "@/components/breed-form";
 import { Nav } from "@/components/nav";
 import { GitBranch, Coins, Clock, Dna } from "lucide-react";
@@ -57,9 +58,23 @@ export default function BreedPage() {
           </p>
         </div>
 
-        {/* ── Breed form ── */}
-        <div className="mb-12">
+        {/* ── Breed form + helix visual ── */}
+        <div className="mb-12 grid xl:grid-cols-[1fr_320px] gap-8 items-start">
           <BreedForm />
+          <div className="hidden xl:block relative w-full aspect-square rounded-2xl overflow-hidden border border-white/[0.06]">
+            <Image
+              src="/breed/helix.jpg"
+              alt="Genetic lineage helix"
+              fill
+              className="object-cover opacity-80"
+              sizes="320px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a14] via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4">
+              <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#7c3aed]">Genetic lineage</p>
+              <p className="text-xs text-white/40 mt-0.5">Dual-strand synthesis</p>
+            </div>
+          </div>
         </div>
 
         {/* ── Divider ── */}

@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Cpu, TrendingUp } from "lucide-react";
+
+const GENESIS_PORTRAITS: Record<string, string> = {
+  aurelius: "/agents/aurelius.png",
+  vesper: "/agents/vesper.png",
+  borealis: "/agents/borealis.png",
+  cassia: "/agents/cassia.png",
+  drogon: "/agents/drogon.png",
+};
 
 interface AgentCardProps {
   tokenId: string | number;
@@ -36,9 +45,19 @@ export function AgentCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="hex-clip w-10 h-10 bg-gradient-to-br from-[#7c3aed]/30 to-[#dc2626]/30 flex items-center justify-center shrink-0">
-              <Cpu className="w-4 h-4 text-[#7c3aed]" />
-            </div>
+            {(() => {
+              const slug = name.toLowerCase().trim();
+              const portrait = GENESIS_PORTRAITS[slug];
+              return portrait ? (
+                <div className="hex-clip w-10 h-10 shrink-0 overflow-hidden relative">
+                  <Image src={portrait} alt={name} fill className="object-cover" sizes="40px" />
+                </div>
+              ) : (
+                <div className="hex-clip w-10 h-10 bg-gradient-to-br from-[#7c3aed]/30 to-[#dc2626]/30 flex items-center justify-center shrink-0">
+                  <Cpu className="w-4 h-4 text-[#7c3aed]" />
+                </div>
+              );
+            })()}
             <div>
               <h3 className="font-bold text-[#ededed] truncate max-w-[120px]">{name}</h3>
               <p className="text-xs text-[#6b7280] font-mono">#{tokenId}</p>

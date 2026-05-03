@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Upload, CheckCircle2 } from "lucide-react";
+import { Upload, CheckCircle2, Sparkles } from "lucide-react";
+
+const FALLBACK_PORTRAITS = [
+  "/agents/aurelius.png",
+  "/agents/vesper.png",
+  "/agents/borealis.png",
+  "/agents/cassia.png",
+  "/agents/drogon.png",
+];
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { keccak256, decodeEventLog } from "viem";
 import { AgentINFTAbi, addresses } from "@agentforge/shared";
@@ -70,6 +79,7 @@ export function MintForm() {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [step, setStep] = useState<string | null>(null);
+  const previewPortrait = FALLBACK_PORTRAITS[Math.floor(Math.random() * FALLBACK_PORTRAITS.length)];
   const [mintTxHash, setMintTxHash] = useState<`0x${string}` | undefined>();
   const { isLoading: isMintConfirming } = useWaitForTransactionReceipt({ hash: mintTxHash });
   const { writeContractAsync } = useWriteContract();
@@ -166,6 +176,31 @@ export function MintForm() {
 
   return (
     <div className="glass-card rounded-2xl p-6 space-y-6">
+      {/* Agent portrait preview */}
+      <div className="flex items-center gap-4 pb-4 border-b border-white/[0.06]">
+        <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#7c3aed]/20 bg-[#7c3aed]/5 shrink-0">
+          <Image
+            src={file ? previewPortrait : previewPortrait}
+            alt="Agent preview"
+            fill
+            className={`object-cover transition-opacity duration-500 ${file ? "opacity-100" : "opacity-50"}`}
+            sizes="64px"
+          />
+          {!file && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-[#7c3aed] opacity-60" />
+            </div>
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#ededed]" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>
+            {file ? "Your agent will look like..." : "Genesis preview"}
+          </p>
+          <p className="text-xs text-white/35 mt-0.5">
+            {file ? "Portrait generated on mint" : "Upload weights to mint your unique agent"}
+          </p>
+        </div>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Weight File Upload */}
         <div className="space-y-2">

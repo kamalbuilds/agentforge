@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/nav";
 import { ArrowRight, Zap, Swords, Cpu, Dna, Trophy, Shield } from "lucide-react";
@@ -226,13 +227,23 @@ const STEPS = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#0a0a14] relative">
-      {/* Background: single violet radial top-center */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background: "radial-gradient(ellipse 70% 40% at 50% -10%, rgba(124,58,237,0.08) 0%, transparent 65%)",
-        }}
-      />
+      {/* Background: arena vista + violet radial overlay */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <Image
+          src="/hero/arena.jpg"
+          alt=""
+          fill
+          className="object-cover opacity-20 mix-blend-luminosity"
+          priority
+          sizes="100vw"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(ellipse 70% 40% at 50% -10%, rgba(124,58,237,0.08) 0%, transparent 65%)",
+          }}
+        />
+      </div>
 
       <Nav />
 
