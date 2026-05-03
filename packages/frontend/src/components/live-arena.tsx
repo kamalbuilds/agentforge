@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Flame, Wifi, WifiOff } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Flame, Wifi, WifiOff, Swords } from "lucide-react";
 
 interface LiveMatch {
   matchId: string;
@@ -16,50 +17,38 @@ export function LiveArena() {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Connect to gateway SSE /arena/stream
     const eventSource = new EventSource("/api/arena/stream");
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-
+    eventSource.onopen    = () => setIsConnected(true);
     eventSource.onmessage = (event) => {
       try {
-        const match: LiveMatch = {
-          ...JSON.parse(event.data),
-          lastUpdate: new Date(),
-        };
+        const match: LiveMatch = { ...JSON.parse(event.data), lastUpdate: new Date() };
         setMatches((prev) => [match, ...prev.slice(0, 9)]);
-      } catch (error) {
-        console.error("Failed to parse match event:", error);
-      }
+      } catch {}
     };
-
-    eventSource.onerror = () => {
-      setIsConnected(false);
-    };
-
-    return () => {
-      eventSource.close();
-    };
+    eventSource.onerror = () => setIsConnected(false);
+    return () => eventSource.close();
   }, []);
 
   return (
     <div className="space-y-4">
-      {/* Connection status */}
+      {/* Connection indicator */}
       <div className="flex items-center gap-2">
-        {isConnected ? (
-          <Wifi className="w-4 h-4 text-[#10b981]" />
-        ) : (
-          <WifiOff className="w-4 h-4 text-white/40" />
-        )}
+        {isConnected
+          ? <Wifi className="w-3.5 h-3.5" style={{ color: "#10b981" }} />
+          : <WifiOff className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+        }
         <span
-          className="text-xs font-mono text-white/40"
+          className="text-[10px] font-mono"
+          style={{ color: "rgba(255,255,255,0.25)" }}
         >
-          {isConnected ? "Connected to Arena stream" : "Awaiting connection..."}
+          {isConnected ? "Connected to arena stream" : "Awaiting connection..."}
         </span>
         <span
-          className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-[#10b981]" : "bg-white/30"} animate-pulse ml-auto`}
+          className="w-1.5 h-1.5 rounded-full ml-auto"
+          style={{
+            background: isConnected ? "#10b981" : "rgba(255,255,255,0.15)",
+            boxShadow: isConnected ? "0 0 6px rgba(16,185,129,0.5)" : "none",
+          }}
         />
       </div>
 
@@ -68,40 +57,65 @@ export function LiveArena() {
           {matches.map((match) => (
             <div
               key={match.matchId}
-              className="glass-card rounded-xl p-4 animate-fade-in border border-[#dc2626]/10"
+              className="rounded-xl p-4 flex items-center justify-between animate-fade-up"
+              style={{
+                background: "rgba(220,38,38,0.05)",
+                border: "1px solid rgba(220,38,38,0.15)",
+              }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-bold text-[#ededed] text-sm">
-                    {match.agentA}
-                    <span className="text-[#6b7280] mx-2">vs</span>
-                    {match.agentB}
-                  </p>
-                  <p className="text-xs text-[#6b7280] font-mono mt-0.5">
-                    Match #{match.matchId}
-                  </p>
-                </div>
-                <Badge className="bg-[#dc2626]/20 text-[#dc2626] border border-[#dc2626]/30 text-xs font-mono animate-pulse">
-                  <Flame className="w-3 h-3 mr-1" />
-                  LIVE
-                </Badge>
+              <div>
+                <p
+                  className="font-semibold text-[#ededed] text-sm"
+                  style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+                >
+                  {match.agentA}
+                  <span style={{ color: "#6b7280", margin: "0 8px" }}>vs</span>
+                  {match.agentB}
+                </p>
+                <p
+                  className="text-[10px] font-mono mt-0.5"
+                  style={{ color: "rgba(255,255,255,0.25)", fontFamily: "var(--font-space-mono), monospace" }}
+                >
+                  Match #{match.matchId} · {match.lastUpdate.toLocaleTimeString()}
+                </p>
               </div>
-              <p className="text-xs text-[#6b7280] font-mono mt-2">
-                {match.lastUpdate.toLocaleTimeString()}
-              </p>
+              <div
+                className="status-pill status-live animate-pulse"
+              >
+                <Flame className="w-2.5 h-2.5" />
+                LIVE
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 space-y-3">
-          <div className="w-12 h-12 rounded-xl bg-[#dc2626]/10 border border-[#dc2626]/20 flex items-center justify-center mx-auto">
-            <Flame className="w-5 h-5 text-[#dc2626]" />
+        // Creature collector empty state (not generic "No Active Matches")
+        <div className="text-center py-14 space-y-4">
+          <div
+            className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center"
+            style={{ background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.18)" }}
+          >
+            <Swords className="w-6 h-6" style={{ color: "#dc2626", opacity: 0.6 }} />
           </div>
-          <p className="text-[#ededed] font-bold">No Active Matches</p>
-          <p className="text-sm text-[#6b7280]">
-            Live matches will appear here as they start. Connect a wallet and
-            challenge an agent to begin.
-          </p>
+          <div className="space-y-1">
+            <p
+              className="font-semibold text-[#ededed]"
+              style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+            >
+              The arena is quiet.
+            </p>
+            <p className="text-sm text-white/30 max-w-xs mx-auto leading-relaxed">
+              Be the first to issue a challenge. Connect your wallet and mint an agent to begin.
+            </p>
+          </div>
+          <Link href="/mint">
+            <Button
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white mt-1"
+              style={{ background: "#7c3aed", fontFamily: "var(--font-space-grotesk), sans-serif" }}
+            >
+              Mint an Agent
+            </Button>
+          </Link>
         </div>
       )}
     </div>

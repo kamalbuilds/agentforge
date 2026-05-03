@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { LiveArena } from "@/components/live-arena";
-import { ConnectButton } from "@/components/connect-button";
+import { Nav } from "@/components/nav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -12,94 +12,110 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Swords, TrendingUp, Coins } from "lucide-react";
+import { Swords, TrendingUp, Coins, Zap } from "lucide-react";
+
+const INFO_CARDS = [
+  {
+    icon: Swords,
+    accentColor: "#dc2626",
+    title: "Battle Mechanics",
+    desc: "Agents compete on computation tasks. Gensyn AXL verifies results off-chain. Outcomes written to ArenaHub on 0G Chain.",
+  },
+  {
+    icon: Coins,
+    accentColor: "#f59e0b",
+    title: "Bet on Matches",
+    desc: "Stake any ERC20 on match outcomes. Odds derived from ELO delta. Token swaps routed through Uniswap v4. Settled post-match.",
+  },
+  {
+    icon: TrendingUp,
+    accentColor: "#10b981",
+    title: "ELO System",
+    desc: "Agents gain or lose ELO after every match. Higher ELO increases breeding desirability and unlocks higher-stakes arena entry.",
+  },
+];
 
 export default function ArenaPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative">
+    <div className="min-h-screen bg-[#0a0a14] relative">
+      {/* Accent: arena red, top-left */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 20% 20%, rgba(220,38,38,0.06) 0%, transparent 60%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 50% 30% at 10% 15%, rgba(220,38,38,0.05) 0%, transparent 55%)" }}
       />
 
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse">◢◤</span>
-            <span className="text-xl font-bold tracking-tight text-[#ededed]">AgentForge</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/agents" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Gallery</Link>
-            <Link href="/arena" className="text-sm text-[#ededed]">Arena</Link>
-            <Link href="/breed" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Breed</Link>
-            <Link href="/mint" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">Mint</Link>
-          </div>
-          <ConnectButton />
-        </div>
-      </nav>
+      <Nav />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 pb-32 space-y-10">
-        {/* Header */}
-        <div className="space-y-2">
-          <p className="text-xs font-mono text-[#dc2626] uppercase tracking-widest">Live</p>
-          <h1 className="text-5xl font-black text-[#ededed] tracking-tight">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-16 pb-32 space-y-10">
+
+        {/* ── Header ── */}
+        <div className="space-y-3">
+          <p className="text-xs font-mono uppercase tracking-[0.12em] text-[#dc2626]">Live</p>
+          <h1
+            className="text-5xl font-semibold text-[#ededed]"
+            style={{ fontFamily: "var(--font-space-grotesk), sans-serif", letterSpacing: "-0.02em" }}
+          >
             Arena
           </h1>
-          <p className="text-[#6b7280] max-w-lg leading-relaxed">
-            Intelligent agents compete in on-chain matches. Compute tasks
-            verified off-chain by{" "}
-            <span className="text-[#10b981]">Gensyn AXL</span> nodes, results
-            committed to 0G Chain.
+          <p className="text-sm text-white/40 max-w-md leading-relaxed">
+            Intelligent agents compete in on-chain matches. Compute verified off-chain by{" "}
+            <span style={{ color: "#10b981" }}>Gensyn AXL</span> nodes, results committed to 0G Chain.
           </p>
         </div>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <Tabs defaultValue="live" className="w-full">
-          <TabsList className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit">
+          <TabsList
+            className="p-1 rounded-xl w-fit"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
             <TabsTrigger
               value="live"
-              className="rounded-lg text-sm data-[state=active]:bg-white/[0.1] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/60"
+              className="rounded-lg px-4 py-2 text-sm data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/40 transition-all"
+              style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
             >
-              Live Matches
+              <Zap className="w-3.5 h-3.5 mr-1.5" />
+              Live
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="rounded-lg text-sm data-[state=active]:bg-white/[0.1] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/60"
+              className="rounded-lg px-4 py-2 text-sm data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#ededed] data-[state=inactive]:text-white/40 transition-all"
+              style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
             >
-              Match History
+              History
             </TabsTrigger>
           </TabsList>
 
-          {/* Live Matches */}
-          <TabsContent value="live" className="mt-6">
-            <div className="glass-card rounded-2xl p-6">
+          {/* Live matches */}
+          <TabsContent value="live" className="mt-5">
+            <div className="glass-card rounded-xl p-6">
               <LiveArena />
             </div>
           </TabsContent>
 
-          {/* Match History */}
-          <TabsContent value="history" className="mt-6">
-            <div className="glass-card rounded-2xl overflow-hidden">
+          {/* History */}
+          <TabsContent value="history" className="mt-5">
+            <div className="glass-card rounded-xl overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Match ID</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Agent A</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Agent B</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider">Winner</TableHead>
-                    <TableHead className="text-[#6b7280] font-mono text-xs uppercase tracking-wider text-right">Completed</TableHead>
+                  <TableRow className="border-white/[0.05] hover:bg-white/[0.01]">
+                    {["Match ID", "Agent A", "Agent B", "Winner", "Completed"].map((h, idx) => (
+                      <TableHead
+                        key={h}
+                        className={`text-[10px] font-mono uppercase tracking-widest ${idx === 4 ? "text-right" : ""}`}
+                        style={{ color: "rgba(255,255,255,0.3)" }}
+                      >
+                        {h}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow className="border-white/[0.06]">
-                    <TableCell colSpan={5} className="text-center py-16 text-[#6b7280]">
+                  <TableRow className="border-white/[0.05]">
+                    <TableCell colSpan={5} className="text-center py-16">
                       <div className="space-y-2">
-                        <p className="font-mono text-sm">No matches recorded yet</p>
-                        <p className="text-xs">Matches will appear here once the arena goes live</p>
+                        <p className="text-white/25 font-mono text-sm">The history is empty.</p>
+                        <p className="text-white/15 text-xs font-mono">Matches will be recorded here once the arena goes live.</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -109,39 +125,34 @@ export default function ArenaPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Info Cards */}
+        {/* ── Divider ── */}
+        <div className="hud-line-h" />
+
+        {/* ── Info cards ── */}
         <div className="grid md:grid-cols-3 gap-4">
-          {[
-            {
-              icon: <Swords className="w-5 h-5" />,
-              color: "#dc2626",
-              title: "Battle Mechanics",
-              desc: "Agents compete on computation tasks. Gensyn AXL verifies results off-chain. Outcomes written to ArenaHub contract on 0G Chain.",
-            },
-            {
-              icon: <Coins className="w-5 h-5" />,
-              color: "#f59e0b",
-              title: "Bet on Matches",
-              desc: "Stake any ERC20 on outcomes. Odds derived from ELO delta. Token swaps routed through Uniswap v4. Settled post-match.",
-            },
-            {
-              icon: <TrendingUp className="w-5 h-5" />,
-              color: "#10b981",
-              title: "ELO System",
-              desc: "Agents gain or lose ELO after every match. Higher ELO increases breeding desirability and arena entry fees.",
-            },
-          ].map((card) => (
-            <div key={card.title} className="glass-card rounded-2xl p-6 space-y-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: `${card.color}15`, color: card.color }}
-              >
-                {card.icon}
+          {INFO_CARDS.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.title} className="glass-card rounded-xl p-5 space-y-3">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center"
+                  style={{
+                    background: `${card.accentColor}12`,
+                    border: `1px solid ${card.accentColor}25`,
+                  }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: card.accentColor }} />
+                </div>
+                <h3
+                  className="font-semibold text-[#ededed] text-sm"
+                  style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+                >
+                  {card.title}
+                </h3>
+                <p className="text-xs text-white/40 leading-relaxed">{card.desc}</p>
               </div>
-              <h3 className="font-bold text-[#ededed]">{card.title}</h3>
-              <p className="text-sm text-[#6b7280] leading-relaxed">{card.desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
     </div>
