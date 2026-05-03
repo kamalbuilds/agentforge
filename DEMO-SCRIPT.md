@@ -2,6 +2,37 @@
 
 3-minute narrative demo capturing the full agent lifecycle: mint, compete, breed.
 
+## Visual Assets (AI-generated, Bria FIBO model)
+
+All assets use bio-mechanical futurism aesthetic with violet (#7c3aed) accent, dark obsidian backgrounds.
+
+### Genesis Agent Portraits (bio-mechanical creatures, transparent cutouts)
+| Agent | Source | Public Path |
+|-------|--------|-------------|
+| Aurelius | `demo/portraits/aurelius.png` | `public/agents/aurelius.png` (512x512, ~363KB) |
+| Vesper | `demo/portraits/vesper.png` | `public/agents/vesper.png` (512x512, ~283KB) |
+| Borealis | `demo/portraits/borealis.png` | `public/agents/borealis.png` (512x512, ~255KB) |
+| Cassia | `demo/portraits/cassia.png` | `public/agents/cassia.png` (512x512, ~315KB) |
+| Drogon | `demo/portraits/drogon.png` | `public/agents/drogon.png` (512x512, ~387KB) |
+
+Full-res cutouts with transparent backgrounds: `demo/portraits/*-cutout.png`
+Original renders: `demo/portraits/*.png`
+
+### Scene Assets
+| Asset | Path | Usage |
+|-------|------|-------|
+| Arena vista (hero bg) | `demo/hero/arena-vista.png` | Landing page background at `opacity-20 mix-blend-luminosity` |
+| Lineage helix | `demo/breed/lineage-helix.png` | Breed page right-column decorative visual |
+| Duel b-roll | `demo/match/duel.png` | Match scene b-roll for demo video (two creatures facing off) |
+| OG image | `demo/og/og-image.png` | Social card, wired into `src/app/opengraph-image.png` and `twitter-image.png` |
+
+### Frontend Integration
+- Agent portraits display in `AgentCard` component when name matches Aurelius/Vesper/Borealis/Cassia/Drogon
+- Hero background: `public/hero/arena.jpg` used on landing page with luminosity blend
+- Breed visual: `public/breed/helix.jpg` shown in right column on xl screens
+- Mint preview: random genesis portrait shown as placeholder until weights uploaded
+- OG/Twitter cards: auto-served by Next.js 15 conventions from `src/app/`
+
 ## Scene Breakdown
 
 ### 0:00-0:15 HOOK (15 seconds)
