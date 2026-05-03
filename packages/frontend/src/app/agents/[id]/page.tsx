@@ -22,7 +22,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Image from "next/image";
 import { Swords, Dna, ArrowLeft, Cpu, ExternalLink } from "lucide-react";
+
+const PORTRAIT_ROTATION = [
+  "/agents/aurelius.png",
+  "/agents/vesper.png",
+  "/agents/borealis.png",
+  "/agents/cassia.png",
+  "/agents/drogon.png",
+];
+function portraitFor(tokenId: bigint | string | number): string {
+  const id = typeof tokenId === "bigint" ? Number(tokenId) : typeof tokenId === "string" ? parseInt(tokenId, 10) : tokenId;
+  const idx = (Number.isFinite(id) ? id - 1 : 0) % PORTRAIT_ROTATION.length;
+  return PORTRAIT_ROTATION[(idx + PORTRAIT_ROTATION.length) % PORTRAIT_ROTATION.length];
+}
 import { useReadContract, usePublicClient, useWriteContract, useAccount } from "wagmi";
 import { parseEther, formatEther } from "viem";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
@@ -245,13 +259,16 @@ export default function AgentDetailPage({
                     border: `1.5px solid ${rarity.color}40`,
                   }}
                 >
-                  <Cpu
-                    className="w-12 h-12 md:w-16 md:h-16 relative z-10"
-                    style={{ color: rarity.color, opacity: 0.7 }}
+                  <Image
+                    src={portraitFor(id)}
+                    alt={`Agent ${id}`}
+                    fill
+                    className="object-cover relative z-10"
+                    sizes="128px"
                   />
                   {/* Glow */}
                   <div
-                    className="absolute inset-0 rounded-2xl"
+                    className="absolute inset-0 rounded-2xl pointer-events-none"
                     style={{ background: `radial-gradient(circle at 50% 50%, ${rarity.color}18 0%, transparent 60%)` }}
                   />
                 </div>

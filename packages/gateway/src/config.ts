@@ -22,6 +22,9 @@ const envSchema = z.object({
   // AXL Bridge
   AXL_NODE_URL: z.string().url().default("http://localhost:5000"),
 
+  // Arena operator key for demo resolver (falls back to DEPLOYER_PRIVATE_KEY if unset)
+  ARENA_OPERATOR_KEY: z.string().optional(),
+
   // RPC endpoints
   RPC_URL_0G: z.string().url().default("https://evmrpc-testnet.0g.ai"),
   RPC_URL_SEPOLIA: z.string().url().default("https://sepolia.infura.io/v3/YOUR_PROJECT_ID").optional(),

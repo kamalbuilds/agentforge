@@ -3,6 +3,7 @@ import { stream } from "hono/streaming";
 import { fetch as nodeFetch } from "undici";
 import { logger } from "../lib/logger.js";
 import { getConfig } from "../config.js";
+import { resolveMatch } from "../lib/match-resolver.js";
 import { z } from "zod";
 
 const ProposeMatchSchema = z.object({
@@ -193,6 +194,66 @@ router.get("/peers", async (c) => {
       },
       500
     );
+  }
+});
+
+/**
+ * POST /arena/resolve/:matchId
+ * Demo resolver: accepts + reports result for a match without AXL agents.
+ * Uses ARENA_OPERATOR_KEY env var (falls back to DEPLOYER_PRIVATE_KEY).
+ */
+router.post("/resolve/:matchId", async (c) => {
+  const matchIdStr = c.req.param("matchId");
+
+  if (!matchIdStr || isNaN(Number(matchIdStr))) {
+    return c.json({ error: "Invalid matchId" }, 400);
+  }
+
+  const matchId = BigInt(matchIdStr);
+
+  const operatorKey = (
+    process.env.ARENA_OPERATOR_KEY ?? process.env.DEPLOYER_PRIVATE_KEY
+  ) as `0x${string}` | undefined;
+
+  if (!operatorKey) {
+    logger.error("Neither ARENA_OPERATOR_KEY nor DEPLOYER_PRIVATE_KEY is set");
+    return c.json({ error: "Operator key not configured" }, 500);
+  }
+
+  const rpcUrl = process.env.ZG_RPC_URL;
+
+  logger.info({ matchId: matchIdStr }, "Resolving match via demo resolver");
+
+  try {
+    const result = await resolveMatch(matchId, operatorKey, rpcUrl);
+
+    logger.info(
+      {
+        matchId: matchIdStr,
+        winner: result.winner.toString(),
+        acceptTx: result.txHashes.accept,
+        reportTx: result.txHashes.report,
+      },
+      "Match resolved"
+    );
+
+    return c.json({
+      matchId: result.matchId.toString(),
+      agentA: result.agentA.toString(),
+      agentB: result.agentB.toString(),
+      winner: result.winner.toString(),
+      loser: result.loser.toString(),
+      eloA_before: result.eloA_before,
+      eloB_before: result.eloB_before,
+      txHashes: {
+        accept: result.txHashes.accept,
+        report: result.txHashes.report,
+      },
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    logger.error({ matchId: matchIdStr, error: msg }, "Match resolve failed");
+    return c.json({ error: msg }, 500);
   }
 });
 

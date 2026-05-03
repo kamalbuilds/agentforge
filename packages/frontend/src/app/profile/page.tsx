@@ -5,7 +5,21 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Nav } from "@/components/nav";
+import Image from "next/image";
 import { Wallet, Gift, Plus, Dna, Cpu, TrendingUp } from "lucide-react";
+
+const PORTRAIT_ROTATION = [
+  "/agents/aurelius.png",
+  "/agents/vesper.png",
+  "/agents/borealis.png",
+  "/agents/cassia.png",
+  "/agents/drogon.png",
+];
+function portraitFor(tokenId: bigint): string {
+  const id = Number(tokenId);
+  const idx = (Number.isFinite(id) ? id - 1 : 0) % PORTRAIT_ROTATION.length;
+  return PORTRAIT_ROTATION[(idx + PORTRAIT_ROTATION.length) % PORTRAIT_ROTATION.length];
+}
 import { toast } from "sonner";
 import { useAccount, usePublicClient, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, RoyaltyVaultAbi, addresses } from "@agentforge/shared";
@@ -35,10 +49,10 @@ function MiniAgentCard({ agent }: { agent: OwnedAgent }) {
       >
         <div className="flex items-center gap-3">
           <div
-            className="agent-avatar shrink-0"
+            className="agent-avatar shrink-0 relative overflow-hidden"
             style={{ borderColor: `${rarity.color}40` }}
           >
-            <Cpu className="w-5 h-5 relative z-10" style={{ color: rarity.color, opacity: 0.8 }} />
+            <Image src={portraitFor(agent.tokenId)} alt={`Agent ${agent.tokenId.toString()}`} fill className="object-cover" sizes="56px" />
           </div>
           <div className="flex-1 min-w-0">
             <p

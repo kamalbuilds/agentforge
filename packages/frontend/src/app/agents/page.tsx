@@ -2,10 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Nav } from "@/components/nav";
 import { Search, Plus, Cpu, ChevronDown } from "lucide-react";
+
+const PORTRAIT_ROTATION = [
+  "/agents/aurelius.png",
+  "/agents/vesper.png",
+  "/agents/borealis.png",
+  "/agents/cassia.png",
+  "/agents/drogon.png",
+];
+function portraitFor(tokenId: bigint | number): string {
+  const id = typeof tokenId === "bigint" ? Number(tokenId) : tokenId;
+  const idx = (Number.isFinite(id) ? id - 1 : 0) % PORTRAIT_ROTATION.length;
+  return PORTRAIT_ROTATION[(idx + PORTRAIT_ROTATION.length) % PORTRAIT_ROTATION.length];
+}
 import { usePublicClient, useReadContracts } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
 import type { Abi } from "viem";
@@ -46,10 +60,16 @@ function AgentCard({ agent }: { agent: AgentOnChain }) {
         {/* Top: avatar + meta */}
         <div className="flex items-start gap-3">
           <div
-            className="agent-avatar shrink-0"
+            className="agent-avatar shrink-0 relative overflow-hidden"
             style={{ borderColor: `${rarity.color}40` }}
           >
-            <Cpu className="w-5 h-5 relative z-10" style={{ color: rarity.color, opacity: 0.85 }} />
+            <Image
+              src={portraitFor(agent.tokenId)}
+              alt={`Agent ${agent.tokenId.toString()}`}
+              fill
+              className="object-cover"
+              sizes="56px"
+            />
           </div>
 
           <div className="flex-1 min-w-0">

@@ -21,12 +21,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Swords, TrendingUp, Coins, Zap, Flame, Wifi, WifiOff } from "lucide-react";
+import { Swords, TrendingUp, Coins, Zap, Flame, Wifi, WifiOff, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { parseEther, formatEther } from "viem";
 import { ArenaAbi, addresses } from "@agentforge/shared";
 import type { Abi } from "viem";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const CHAIN_ID = 16602 as const;
 const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
@@ -59,7 +65,24 @@ interface LiveMatch {
   agentA: string;
   agentB: string;
   lastUpdate: Date;
+  stake?: string;
+  proposer?: string;
 }
+
+// MatchStatus mirrors Arena.sol enum
+const MatchStatusNum = { Proposed: 0, Accepted: 1, Settled: 2, Cancelled: 3 } as const;
+
+const MATCH_PROPOSED_EVENT = {
+  type: "event" as const,
+  name: "MatchProposed",
+  inputs: [
+    { name: "matchId",  type: "uint256" as const, indexed: true },
+    { name: "agentA",   type: "uint256" as const, indexed: true },
+    { name: "agentB",   type: "uint256" as const, indexed: true },
+    { name: "stake",    type: "uint256" as const, indexed: false },
+    { name: "proposer", type: "address" as const, indexed: false },
+  ],
+} as const;
 
 const INFO_CARDS = [
   {
@@ -85,58 +108,257 @@ const INFO_CARDS = [
 function LiveArenaFeed({ onChallenge }: { onChallenge: () => void }) {
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [resolving, setResolving] = useState<Set<string>>(new Set());
+  const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
 
+  // Merge a list of new matches (dedup by matchId)
+  const mergeMatches = (incoming: LiveMatch[]) => {
+    setMatches((prev) => {
+      const map = new Map<string, LiveMatch>(prev.map((m) => [m.matchId, m]));
+      for (const m of incoming) {
+        if (!map.has(m.matchId)) map.set(m.matchId, m);
+      }
+      return Array.from(map.values()).sort(
+        (a, b) => Number(b.matchId) - Number(a.matchId)
+      ).slice(0, 20);
+    });
+  };
+
+  // SSE stream from gateway (AXL path)
   useEffect(() => {
     const es = new EventSource(`${GATEWAY_URL}/arena/stream`);
-    es.onopen    = () => setIsConnected(true);
+    es.onopen = () => setIsConnected(true);
     es.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data as string) as { type?: string; matchId?: string; agentA?: string; agentB?: string };
+        const data = JSON.parse(event.data as string) as {
+          type?: string;
+          matchId?: string;
+          agentA?: string;
+          agentB?: string;
+        };
         if (data.matchId) {
-          setMatches((prev) => [{ matchId: String(data.matchId), agentA: String(data.agentA), agentB: String(data.agentB), lastUpdate: new Date() }, ...prev.slice(0, 9)]);
+          mergeMatches([
+            {
+              matchId: String(data.matchId),
+              agentA: String(data.agentA),
+              agentB: String(data.agentB),
+              lastUpdate: new Date(),
+            },
+          ]);
         }
       } catch { /* keep-alive ping */ }
     };
     es.onerror = () => setIsConnected(false);
     return () => es.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Chain event fallback: poll MatchProposed every 15s so proposed matches
+  // appear immediately even without a live AXL stream.
+  useEffect(() => {
+    if (!publicClient) return;
+
+    let cancelled = false;
+    const BLOCK_PAGE = 1000n;
+
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const latest = await publicClient.getBlockNumber();
+        const fromBlock = latest > BLOCK_PAGE ? latest - BLOCK_PAGE : 0n;
+        const logs = await publicClient.getLogs({
+          address: addresses[CHAIN_ID].Arena,
+          event: MATCH_PROPOSED_EVENT,
+          fromBlock,
+          toBlock: latest,
+        });
+
+        const incoming: LiveMatch[] = logs
+          .reverse()
+          .slice(0, 20)
+          .map((log) => {
+            const a = log.args as {
+              matchId: bigint;
+              agentA: bigint;
+              agentB: bigint;
+              stake: bigint;
+              proposer: string;
+            };
+            return {
+              matchId: a.matchId.toString(),
+              agentA: a.agentA.toString(),
+              agentB: a.agentB.toString(),
+              stake: a.stake.toString(),
+              proposer: a.proposer,
+              lastUpdate: new Date(),
+            };
+          });
+
+        if (!cancelled) mergeMatches(incoming);
+      } catch { /* RPC error, silent retry */ }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicClient]);
+
+  const handleResolve = async (matchId: string) => {
+    setResolving((prev) => new Set(prev).add(matchId));
+    const tid = toast.loading(`Resolving match #${matchId} on-chain...`);
+    try {
+      const res = await fetch(`${GATEWAY_URL}/arena/resolve/${matchId}`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as {
+        winner?: string;
+        txHashes?: { accept: string | null; report: string };
+        error?: string;
+      };
+      if (!res.ok || data.error) throw new Error(data.error ?? "Resolve failed");
+      toast.dismiss(tid);
+      toast.success(
+        `Match #${matchId} settled! Winner: Agent #${data.winner ?? "?"}`,
+        { duration: 6000 }
+      );
+      // Remove settled match from live list
+      setMatches((prev) => prev.filter((m) => m.matchId !== matchId));
+    } catch (err) {
+      toast.dismiss(tid);
+      toast.error(err instanceof Error ? err.message : "Resolve failed");
+    } finally {
+      setResolving((prev) => {
+        const next = new Set(prev);
+        next.delete(matchId);
+        return next;
+      });
+    }
+  };
+
+  // Show Resolve button when current user is proposer or agentB owner (demo: always show for connected user)
+  const canResolve = !!address;
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        {isConnected ? <Wifi className="w-3.5 h-3.5" style={{ color: "#10b981" }} /> : <WifiOff className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />}
-        <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{isConnected ? "Connected to arena stream" : "Awaiting connection..."}</span>
-        <span className="w-1.5 h-1.5 rounded-full ml-auto" style={{ background: isConnected ? "#10b981" : "rgba(255,255,255,0.15)", boxShadow: isConnected ? "0 0 6px rgba(16,185,129,0.5)" : "none" }} />
-      </div>
-      {matches.length > 0 ? (
-        <div className="space-y-3">
-          {matches.map((m) => (
-            <div key={m.matchId} className="rounded-xl p-4 flex items-center justify-between animate-fade-up" style={{ background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)" }}>
-              <div>
-                <p className="font-semibold text-[#ededed] text-sm" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>
-                  Agent #{m.agentA} <span style={{ color: "#6b7280", margin: "0 8px" }}>vs</span> Agent #{m.agentB}
-                </p>
-                <p className="text-[10px] font-mono mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>Match #{m.matchId} · {m.lastUpdate.toLocaleTimeString()}</p>
+    <TooltipProvider>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <Wifi className="w-3.5 h-3.5" style={{ color: "#10b981" }} />
+          ) : (
+            <WifiOff className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+          )}
+          <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>
+            {isConnected ? "Connected to arena stream" : "Chain events active (AXL offline)"}
+          </span>
+          <span
+            className="w-1.5 h-1.5 rounded-full ml-auto"
+            style={{
+              background: isConnected ? "#10b981" : "rgba(255,255,255,0.15)",
+              boxShadow: isConnected ? "0 0 6px rgba(16,185,129,0.5)" : "none",
+            }}
+          />
+        </div>
+
+        {matches.length > 0 ? (
+          <div className="space-y-3">
+            {matches.map((m) => (
+              <div
+                key={m.matchId}
+                className="rounded-xl p-4 flex items-center justify-between animate-fade-up"
+                style={{
+                  background: "rgba(220,38,38,0.05)",
+                  border: "1px solid rgba(220,38,38,0.15)",
+                }}
+              >
+                <div>
+                  <p
+                    className="font-semibold text-[#ededed] text-sm"
+                    style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+                  >
+                    Agent #{m.agentA}{" "}
+                    <span style={{ color: "#6b7280", margin: "0 8px" }}>vs</span>{" "}
+                    Agent #{m.agentB}
+                  </p>
+                  <p
+                    className="text-[10px] font-mono mt-0.5"
+                    style={{ color: "rgba(255,255,255,0.25)" }}
+                  >
+                    Match #{m.matchId} · {m.lastUpdate.toLocaleTimeString()}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {canResolve && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          disabled={resolving.has(m.matchId)}
+                          onClick={() => void handleResolve(m.matchId)}
+                          className="h-8 px-3 rounded-lg text-xs font-semibold text-white gap-1.5"
+                          style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: "#10b981" }}
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          {resolving.has(m.matchId) ? "Resolving..." : "Resolve (Demo)"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="max-w-xs text-xs"
+                        style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+                      >
+                        Demo mode: skips AXL agent turn-taking and resolves the match
+                        directly using ELO-weighted random outcome. Real flow runs via
+                        AXL compute nodes.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  <div className="status-pill status-live animate-pulse">
+                    <Flame className="w-2.5 h-2.5" />
+                    LIVE
+                  </div>
+                </div>
               </div>
-              <div className="status-pill status-live animate-pulse"><Flame className="w-2.5 h-2.5" />LIVE</div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-14 space-y-4">
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center"
+              style={{
+                background: "rgba(220,38,38,0.08)",
+                border: "1px solid rgba(220,38,38,0.18)",
+              }}
+            >
+              <Swords className="w-6 h-6" style={{ color: "#dc2626", opacity: 0.6 }} />
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-14 space-y-4">
-          <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.18)" }}>
-            <Swords className="w-6 h-6" style={{ color: "#dc2626", opacity: 0.6 }} />
+            <div className="space-y-1">
+              <p
+                className="font-semibold text-[#ededed]"
+                style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+              >
+                The arena is quiet.
+              </p>
+              <p className="text-sm text-white/30 max-w-xs mx-auto leading-relaxed">
+                Be the first to issue a challenge.
+              </p>
+            </div>
+            <Button
+              onClick={onChallenge}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white mt-1"
+              style={{ background: "#dc2626" }}
+            >
+              Challenge an Agent
+            </Button>
           </div>
-          <div className="space-y-1">
-            <p className="font-semibold text-[#ededed]" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>The arena is quiet.</p>
-            <p className="text-sm text-white/30 max-w-xs mx-auto leading-relaxed">Be the first to issue a challenge.</p>
-          </div>
-          <Button onClick={onChallenge} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white mt-1" style={{ background: "#dc2626" }}>
-            Challenge an Agent
-          </Button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
 
