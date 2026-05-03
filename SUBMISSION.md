@@ -117,6 +117,8 @@ See [E2E-PROOF.md](./E2E-PROOF.md) for full transaction details and state verifi
 
 See [DEMO-SCRIPT.md](./DEMO-SCRIPT.md) for full scene breakdown and recording checklist.
 
+**Demo weight files** for the mint flow are pre-committed at `demo/weights/genesis-aurelius.safetensors` (and four sibling files for the other genesis agents). To regenerate from scratch: `python scripts/generate-demo-weights.py`. These are real safetensors files with a tiny 2-layer transformer architecture (embed_dim=64, vocab_size=512), deterministically seeded per agent.
+
 ## Live Demo URL
 
 **Link:** TBD

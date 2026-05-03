@@ -13,3 +13,5 @@ dist/
 next-env.d.ts
 .gstack/
 .qa/
+# Explicitly allow demo weight files (real safetensors, committed for demo convenience)
+!demo/weights/*.safetensors

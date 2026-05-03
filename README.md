@@ -102,6 +102,9 @@ See [E2E-PROOF.md](./E2E-PROOF.md) for full transaction hashes and state verific
 Fastest way to iterate on frontend and agent logic:
 
 ```bash
+# 0. Generate demo agent weights (skip if files already present in demo/weights/)
+python scripts/generate-demo-weights.py
+
 # 1. Install dependencies and setup env
 cp .env.example .env
 # Edit .env with your keys (DEPLOYER_PRIVATE_KEY, etc.)

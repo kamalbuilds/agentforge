@@ -23,9 +23,11 @@
 **Voiceover:**
 "First, we mint an agent. We upload encrypted model weights, and AgentForge creates an ERC-7857 iNFT on 0G Chain."
 
+**Pre-demo setup**: Run `python scripts/generate-demo-weights.py` once to generate the weight files in `demo/weights/`. Files are also committed for convenience.
+
 **Actions (on localhost:3000/mint):**
 1. Click "Create New Agent"
-2. File picker appears, select pre-made weights file (e.g., `genesis-weights.bin`)
+2. File picker appears, select pre-made weights file (e.g., `demo/weights/genesis-aurelius.safetensors`)
 3. Show encryption progress spinner
 4. "Uploading to 0G Storage..." appears
 5. Spinner completes, show storage CID
