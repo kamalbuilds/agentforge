@@ -11,7 +11,7 @@ COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/agent/package.json ./packages/agent/
 COPY packages/gateway/package.json ./packages/gateway/
 
-# Install dependencies
+# Install all dependencies (shamefully-hoist for Docker symlink compatibility)
 RUN npm install -g pnpm && \
     pnpm install --no-frozen-lockfile --shamefully-hoist
 
@@ -19,29 +19,32 @@ RUN npm install -g pnpm && \
 COPY packages/frontend ./packages/frontend
 COPY packages/shared ./packages/shared
 
-# Build Next.js
+# Build shared package first (frontend depends on @agentforge/shared)
+WORKDIR /app/packages/shared
+RUN pnpm build
+
+# Build Next.js with standalone output
 WORKDIR /app/packages/frontend
 RUN pnpm build
 
-# Production runtime
+# Production runtime - use tiny standalone bundle
 FROM node:24-slim
 
 WORKDIR /app
 
-# Copy node modules and built app from builder
-COPY --from=builder /app/packages/frontend/.next ./.next
-COPY --from=builder /app/packages/frontend/public ./public
-COPY --from=builder /app/packages/frontend/package.json ./package.json
-
-# Install only production runtime dependencies
-RUN npm install -g pnpm && \
-    npm install next react react-dom
+# Copy only the standalone output (self-contained, no node_modules needed)
+COPY --from=builder /app/packages/frontend/.next/standalone ./
+COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
+COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000 || exit 1
+ENV HOSTNAME="0.0.0.0"
+ENV PORT=3000
 
-# Run Next.js server
-CMD ["npm", "run", "start"]
+# Health check using node
+HEALTHCHECK --interval=30s --timeout=15s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
+
+# Next.js standalone server
+CMD ["node", "packages/frontend/server.js"]
