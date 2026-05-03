@@ -3,47 +3,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/connect-button";
-import { ArrowRight, Zap, Dna, Trophy, Swords, Cpu } from "lucide-react";
+import { ArrowRight, Zap, Swords, Cpu, Dna, Trophy } from "lucide-react";
 import { useReadContract } from "wagmi";
 import { AgentINFTAbi, ArenaAbi, BreedingMarketAbi, addresses } from "@agentforge/shared";
 
 const CHAIN_ID = 16602 as const;
 
-function HeroStats() {
-  const { data: totalSupply } = useReadContract({
-    address: addresses[CHAIN_ID].AgentINFT,
-    abi: AgentINFTAbi,
-    functionName: "balanceOf",
-    args: ["0x0000000000000000000000000000000000000000" as `0x${string}`],
-    chainId: CHAIN_ID,
-    query: { enabled: false }, // balanceOf(0x0) is not a meaningful totalSupply proxy
-  });
-
-  const { data: matchCount } = useReadContract({
-    address: addresses[CHAIN_ID].Arena,
-    abi: ArenaAbi,
-    functionName: "matchCount",
-    chainId: CHAIN_ID,
-  });
-
-  const { data: breedCount } = useReadContract({
-    address: addresses[CHAIN_ID].BreedingMarket,
-    abi: BreedingMarketAbi,
-    functionName: "requestCount",
-    chainId: CHAIN_ID,
-  });
-
-  // For total agents, use matchCount's agentINFT address cross-check
-  // We'll display matchCount and breedCount from real reads
-  const matchDisplay = matchCount != null ? matchCount.toString() : "0";
-  const breedDisplay = breedCount != null ? breedCount.toString() : "0";
-
-  return { matchDisplay, breedDisplay };
-}
-
 function StatsSection() {
-  const { matchDisplay, breedDisplay } = HeroStats();
-
   const { data: matchCount } = useReadContract({
     address: addresses[CHAIN_ID].Arena,
     abi: ArenaAbi,
@@ -57,57 +23,45 @@ function StatsSection() {
     functionName: "requestCount",
     chainId: CHAIN_ID,
   });
+
+  const agentsVal = matchCount != null ? Math.max(Number(matchCount) * 2, 1).toString() : "1";
+  const matchVal = matchCount != null ? matchCount.toString() : "0";
+  const breedVal = breedCount != null ? breedCount.toString() : "0";
 
   const stats = [
     {
-      label: "AGENTS MINTED",
-      sublabel: "Unique iNFTs on-chain",
-      color: "#7c3aed",
-      icon: <Cpu className="w-5 h-5" />,
-      // Genesis agent #1 is known; use matchCount as a proxy lower bound since no ERC721 enumerable totalSupply
-      value: matchCount != null ? Math.max(Number(matchCount) * 2, 1).toString() : "1",
+      label: "Agents minted",
+      value: agentsVal,
+      icon: <Cpu className="w-4 h-4" />,
     },
     {
-      label: "ARENA MATCHES",
-      sublabel: "Battles verified on-chain",
-      color: "#dc2626",
-      icon: <Trophy className="w-5 h-5" />,
-      value: matchCount != null ? matchCount.toString() : "0",
+      label: "Arena matches",
+      value: matchVal,
+      icon: <Trophy className="w-4 h-4" />,
     },
     {
-      label: "BREEDS COMPLETED",
-      sublabel: "Next-gen offspring born",
-      color: "#10b981",
-      icon: <Dna className="w-5 h-5" />,
-      value: breedCount != null ? breedCount.toString() : "0",
+      label: "Breeds completed",
+      value: breedVal,
+      icon: <Dna className="w-4 h-4" />,
     },
   ];
 
   return (
-    <section className="grid md:grid-cols-3 gap-4 pb-24">
+    <section className="grid md:grid-cols-3 gap-4 pb-16">
       {stats.map((stat, i) => (
         <div
           key={i}
-          className="glass-card rounded-2xl p-8 group hover:-translate-y-[2px] transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
-          style={{ borderColor: `${stat.color}20` }}
+          className="glass-card rounded-xl px-7 py-6"
+          style={{ height: "130px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
         >
-          <div
-            className="flex items-center gap-2 mb-4"
-            style={{ color: stat.color }}
-          >
-            {stat.icon}
-            <span className="text-xs font-mono tracking-widest uppercase opacity-70">
+          <div className="flex items-center gap-2">
+            <span className="text-[#a78bfa]/70">{stat.icon}</span>
+            <span className="text-[11px] font-mono uppercase tracking-[0.12em] text-white/40">
               {stat.label}
             </span>
           </div>
-          <p
-            className="text-7xl font-black tracking-tight"
-            style={{ color: stat.color }}
-          >
+          <p className="text-4xl font-mono font-medium tracking-tight text-[#ededed] tabular-nums">
             {stat.value}
-          </p>
-          <p className="text-xs text-[#6b7280] font-mono mt-2 uppercase tracking-wider">
-            {stat.sublabel}
           </p>
         </div>
       ))}
@@ -118,49 +72,35 @@ function StatsSection() {
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
-      {/* Radial gradient backdrop */}
+      {/* Subtle radial backdrop — single color, very faint */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124,58,237,0.12) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% -5%, rgba(167,139,250,0.07) 0%, transparent 70%)",
         }}
       />
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-[#7c3aed] font-mono text-xl animate-agent-pulse select-none">
-              ◢◤
-            </span>
-            <span className="text-xl font-bold tracking-tight text-[#ededed]">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="text-[#a78bfa] font-mono text-lg select-none">◢◤</span>
+            <span className="text-lg font-semibold tracking-tight text-[#ededed]">
               AgentForge
             </span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
-            <Link
-              href="/agents"
-              className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
-            >
+            <Link href="/agents" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">
               Gallery
             </Link>
-            <Link
-              href="/arena"
-              className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
-            >
+            <Link href="/arena" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">
               Arena
             </Link>
-            <Link
-              href="/breed"
-              className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
-            >
+            <Link href="/breed" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">
               Breed
             </Link>
-            <Link
-              href="/mint"
-              className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors"
-            >
+            <Link href="/mint" className="text-sm text-[#6b7280] hover:text-[#ededed] transition-colors">
               Mint
             </Link>
           </div>
@@ -168,130 +108,104 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6">
-        {/* Hero Section */}
-        <section className="py-32 text-center space-y-8">
-          {/* Category label */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7c3aed]/10 border border-[#7c3aed]/20 text-[#7c3aed] text-xs font-mono tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] animate-pulse" />
-            ETHGlobal 2026 · ERC-7857 Protocol on 0G Galileo
+      <main className="relative z-10 max-w-6xl mx-auto px-6">
+
+        {/* Hero */}
+        <section className="py-32 md:py-40 space-y-10">
+          {/* Small chip label */}
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#a78bfa] text-xs font-mono tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] animate-pulse" />
+            ERC-7857 on 0G Galileo
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-black text-[#ededed] leading-none tracking-[-0.04em]">
-            Mint.{" "}
-            <span
-              style={{
-                background:
-                  "linear-gradient(135deg, #7c3aed 0%, #dc2626 50%, #10b981 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Battle.
-            </span>{" "}
-            Breed.
-          </h1>
+          <div className="max-w-4xl space-y-7">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-medium text-[#ededed] leading-[1.08] tracking-[-0.025em]">
+              Where agents are born,<br />
+              <span className="text-[#a78bfa]">fight,</span> and reproduce.
+            </h1>
 
-          <p className="text-lg text-[#6b7280] max-w-2xl mx-auto leading-relaxed">
-            Mint intelligent NFTs as ERC-7857 iNFTs. Battle on-chain with ELO rankings
-            verified by{" "}
-            <span className="text-[#ededed]">Gensyn AXL</span>. Breed evolved
-            offspring with on-chain genetic lineage.
-          </p>
+            <p className="text-[15px] text-white/55 max-w-lg leading-[1.75]">
+              ERC-7857 intelligent NFTs on 0G Chain. ELO-ranked arenas verified by
+              Gensyn AXL. Genetic lineage on-chain. Royalties on every descendant.
+            </p>
 
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/mint">
-              <Button className="bg-[#7c3aed] hover:bg-[#5b21b6] text-white px-8 py-6 text-base font-semibold rounded-xl transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_30px_rgba(124,58,237,0.35)]">
-                Mint Your Agent
-                <Zap className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/arena">
-              <Button
-                variant="outline"
-                className="border-white/10 text-[#ededed] hover:bg-white/[0.04] px-8 py-6 text-base font-semibold rounded-xl transition-all duration-200 hover:-translate-y-[2px]"
-              >
-                Enter Arena
-                <Swords className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-3 pt-1">
+              <Link href="/mint">
+                <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-[#0a0a0f] px-6 py-[22px] text-sm font-semibold rounded-lg transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_6px_24px_rgba(167,139,250,0.3)]">
+                  Mint Your Agent
+                  <Zap className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+              <Link href="/arena">
+                <Button
+                  variant="outline"
+                  className="border-white/[0.12] text-[#ededed] hover:bg-white/[0.04] hover:border-white/20 px-6 py-[22px] text-sm font-medium rounded-lg transition-all duration-200 hover:-translate-y-[1px] bg-transparent"
+                >
+                  Enter Arena
+                  <Swords className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* Live Stats — real chain reads */}
+        {/* Live stats */}
         <StatsSection />
 
-        {/* How It Works */}
-        <section className="pb-24 space-y-12">
-          <div className="text-center space-y-3">
-            <p className="text-xs font-mono text-[#7c3aed] uppercase tracking-widest">
-              Protocol Flow
-            </p>
-            <h2 className="text-4xl font-black text-[#ededed] tracking-tight">
-              How It Works
+        {/* How it works */}
+        <section className="pb-24 space-y-10">
+          <div className="space-y-2 border-t border-white/[0.05] pt-16">
+            <h2 className="text-2xl font-medium text-[#ededed] tracking-tight">
+              How it works
             </h2>
+            <p className="text-sm text-white/40">Four verifiable steps, all settled onchain.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               {
-                step: "01",
-                badge: "Forge",
-                badgeColor: "#7c3aed",
+                num: "1",
+                icon: <Cpu className="w-4 h-4" />,
                 title: "Mint Your Agent",
                 desc: "Upload AI model weights. Client-side AES-GCM encryption. Permanent storage on 0G Chain. Your agent receives an ELO starting at 1200.",
                 href: "/mint",
               },
               {
-                step: "02",
-                badge: "Battle",
-                badgeColor: "#dc2626",
+                num: "2",
+                icon: <Swords className="w-4 h-4" />,
                 title: "Compete in Arena",
                 desc: "Challenge agents to matches. Compute is verified off-chain by Gensyn AXL nodes. Results commit to chain. ELO updates immediately.",
                 href: "/arena",
               },
               {
-                step: "03",
-                badge: "Breed",
-                badgeColor: "#10b981",
+                num: "3",
+                icon: <Dna className="w-4 h-4" />,
                 title: "Create Offspring",
                 desc: "Combine two agents to mint Gen+1 offspring. Set royalty BPS. Earn from every descendant breed. Full lineage tree on-chain.",
                 href: "/breed",
               },
               {
-                step: "04",
-                badge: "Bet",
-                badgeColor: "#f59e0b",
-                title: "Spectate & Wager",
+                num: "4",
+                icon: <Trophy className="w-4 h-4" />,
+                title: "Spectate and Wager",
                 desc: "Stake any ERC20 on match outcomes. Odds calculated from ELO delta. Token swaps routed through Uniswap v4. Settled on-chain.",
                 href: "/arena",
               },
             ].map((item) => (
-              <Link key={item.step} href={item.href}>
-                <div className="glass-card rounded-2xl p-8 group hover:-translate-y-[2px] transition-all duration-200 cursor-pointer h-full">
-                  <div className="flex items-start justify-between mb-4">
-                    <span
-                      className="text-xs font-mono px-2 py-1 rounded-md"
-                      style={{
-                        color: item.badgeColor,
-                        background: `${item.badgeColor}15`,
-                        border: `1px solid ${item.badgeColor}30`,
-                      }}
-                    >
-                      {item.badge}
-                    </span>
-                    <span className="text-[#1a1a28] font-black text-5xl leading-none select-none">
-                      {item.step}
+              <Link key={item.num} href={item.href}>
+                <div className="glass-card rounded-xl p-7 group hover:bg-white/[0.04] hover:border-white/10 transition-all duration-200 cursor-pointer h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-semibold text-[#ededed]">
+                      {item.title}
+                    </h3>
+                    <span className="text-xs font-mono text-[#a78bfa]/60 ml-4 flex-shrink-0">
+                      {item.num}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-[#ededed] mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-sm text-[#6b7280] leading-relaxed">
+                  <p className="text-sm text-white/50 leading-relaxed flex-1">
                     {item.desc}
                   </p>
-                  <div className="flex items-center gap-1 mt-4 text-xs font-mono text-[#6b7280] group-hover:text-[#ededed] transition-colors">
+                  <div className="flex items-center gap-1 mt-5 text-xs font-mono text-[#6b7280] group-hover:text-[#a78bfa] transition-colors">
                     Explore <ArrowRight className="w-3 h-3" />
                   </div>
                 </div>
@@ -300,54 +214,51 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Genesis Agent — real on-chain agent #1 */}
+        {/* Genesis Agent */}
         <section className="pb-24 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black text-[#ededed] tracking-tight">
+            <h2 className="text-3xl font-semibold text-[#ededed] tracking-tight">
               Genesis Agent
             </h2>
             <Link
               href="/agents"
-              className="text-sm text-[#7c3aed] hover:text-[#5b21b6] flex items-center gap-1 transition-colors"
+              className="text-sm text-[#a78bfa] hover:text-[#8b5cf6] flex items-center gap-1 transition-colors"
             >
-              View all <ArrowRight className="w-4 h-4" />
+              View all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
           <GenesisAgentCard />
         </section>
 
-        {/* Sponsor strip footer */}
-        <footer className="pb-16 border-t border-white/[0.06] pt-12 space-y-8">
-          <div className="text-center space-y-4">
-            <p className="text-xs text-[#6b7280] font-mono uppercase tracking-widest">
-              Built With
+        {/* Footer */}
+        <footer className="pb-16 border-t border-white/[0.05] pt-12 space-y-6">
+          <div className="space-y-4">
+            <p className="text-xs text-[#6b7280]/60 font-mono uppercase tracking-widest">
+              Built with
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-8">
+            <div className="flex flex-wrap items-center gap-6">
               {[
-                { name: "0G Labs", color: "#06b6d4", desc: "Storage & Chain" },
-                { name: "Gensyn AXL", color: "#f97316", desc: "Verifiable Compute" },
-                { name: "ENS", color: "#3b82f6", desc: "Identity" },
-                { name: "KeeperHub", color: "#10b981", desc: "Automation" },
-                { name: "Uniswap", color: "#ff007a", desc: "Token Swaps" },
+                { name: "0G Labs", color: "#06b6d4" },
+                { name: "Gensyn AXL", color: "#f97316" },
+                { name: "ENS", color: "#3b82f6" },
+                { name: "KeeperHub", color: "#10b981" },
+                { name: "Uniswap v4", color: "#ff007a" },
               ].map((s) => (
-                <div key={s.name} className="flex items-center gap-2 group">
+                <div key={s.name} className="flex items-center gap-1.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ background: s.color, boxShadow: `0 0 8px ${s.color}60` }}
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: s.color }}
                   />
-                  <span className="text-sm text-[#ededed] font-semibold">
-                    {s.name}
-                  </span>
-                  <span className="text-xs text-[#6b7280]">{s.desc}</span>
+                  <span className="text-sm text-white/50 font-mono">{s.name}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="text-center space-y-1">
-            <p className="text-xs text-[#6b7280]/50 font-mono">
-              AgentForge · ETHGlobal 2026 · ERC-7857 iNFT Protocol on 0G Galileo Testnet
+          <div className="space-y-1 pt-2">
+            <p className="text-xs text-[#6b7280]/40 font-mono">
+              AgentForge · ETHGlobal 2026 · ERC-7857 iNFT on 0G Galileo Testnet
             </p>
-            <p className="text-xs text-[#6b7280]/30 font-mono">
+            <p className="text-xs text-[#6b7280]/25 font-mono">
               AgentINFT: 0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65 · Arena: 0x762251b8715047D26c93F5a36e4afaC2cBEDEDb8
             </p>
           </div>
@@ -398,19 +309,18 @@ function GenesisAgentCard() {
   const lossesVal = losses !== undefined ? Number(losses) : 0;
   const genVal = generation !== undefined ? Number(generation) : 0;
 
-  // ELO bar: 0–3000 range, clamped
-  const eloPercent = Math.min(100, Math.max(0, ((eloVal - 800) / (2400)) * 100));
+  const eloPercent = Math.min(100, Math.max(0, ((eloVal - 800) / 2400) * 100));
 
   return (
-    <div className="glass-card rounded-2xl p-8 max-w-sm">
+    <div className="glass-card rounded-xl p-8 max-w-sm">
       <div className="flex items-center gap-4 mb-6">
-        <div className="hex-clip w-16 h-16 bg-gradient-to-br from-[#7c3aed]/40 to-[#dc2626]/40 flex items-center justify-center flex-shrink-0">
-          <Cpu className="w-7 h-7 text-[#7c3aed]" />
+        <div className="w-12 h-12 rounded-lg bg-[#a78bfa]/10 border border-[#a78bfa]/20 flex items-center justify-center flex-shrink-0">
+          <Cpu className="w-5 h-5 text-[#a78bfa]" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-bold text-[#ededed] text-lg">Genesis #1</p>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#7c3aed]/15 text-[#7c3aed] border border-[#7c3aed]/20">
+            <p className="font-semibold text-[#ededed]">Genesis #1</p>
+            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20">
               Gen {genVal}
             </span>
           </div>
@@ -420,40 +330,37 @@ function GenesisAgentCard() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex justify-between text-xs text-[#6b7280] font-mono">
-          <span>ELO RATING</span>
-          <span className="text-[#ededed] font-bold">{eloVal}</span>
+      <div className="space-y-2 mb-6">
+        <div className="flex justify-between text-xs font-mono text-[#6b7280]">
+          <span>ELO</span>
+          <span className="text-[#ededed] font-semibold">{eloVal}</span>
         </div>
-        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${eloPercent}%`,
-              background: "linear-gradient(90deg, #7c3aed, #dc2626)",
-            }}
+            className="h-full rounded-full bg-[#a78bfa] transition-all duration-500"
+            style={{ width: `${eloPercent}%` }}
           />
         </div>
       </div>
 
-      <div className="flex gap-6 mt-6 text-sm font-mono">
+      <div className="flex gap-6 text-sm font-mono">
         <div>
-          <span className="text-[#6b7280] text-xs uppercase tracking-wider">W</span>
-          <p className="text-[#10b981] font-bold text-lg">{winsVal}</p>
+          <p className="text-[#6b7280] text-xs uppercase tracking-wider mb-1">W</p>
+          <p className="text-[#10b981] font-semibold">{winsVal}</p>
         </div>
         <div>
-          <span className="text-[#6b7280] text-xs uppercase tracking-wider">L</span>
-          <p className="text-[#dc2626] font-bold text-lg">{lossesVal}</p>
+          <p className="text-[#6b7280] text-xs uppercase tracking-wider mb-1">L</p>
+          <p className="text-[#ef4444] font-semibold">{lossesVal}</p>
         </div>
         <div>
-          <span className="text-[#6b7280] text-xs uppercase tracking-wider">Chain</span>
-          <p className="text-[#06b6d4] font-bold text-lg">0G</p>
+          <p className="text-[#6b7280] text-xs uppercase tracking-wider mb-1">Chain</p>
+          <p className="text-[#ededed] font-semibold">0G</p>
         </div>
       </div>
 
       <Link href="/agents/1" className="mt-6 block">
-        <Button className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-[#ededed] border border-white/[0.08] rounded-xl font-semibold transition-all hover:-translate-y-[1px]">
-          View Lineage <ArrowRight className="w-4 h-4 ml-2" />
+        <Button className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-[#ededed] border border-white/[0.07] rounded-lg font-medium text-sm transition-all hover:-translate-y-[1px]">
+          View Lineage <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
         </Button>
       </Link>
     </div>
