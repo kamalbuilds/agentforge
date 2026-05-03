@@ -1,32 +1,58 @@
 @import "tailwindcss";
 
-/* Tailwind v4 CSS-first theme config */
+/* ─────────────────────────────────────────────────
+   Tailwind v4 CSS-first theme config
+   Design system: Illuvium × Dark Frontiers hybrid
+   Primary: #7c3aed (electric violet)
+   BG: #0a0a14 (deep navy-black)
+   ───────────────────────────────────────────────── */
 @theme {
-  --color-ink: #0a0a0f;
-  --color-ink-50: #0d0d15;
-  --color-ink-100: #12121c;
-  --color-ink-200: #1a1a28;
-  --color-bone: #ededed;
-  --color-muted: #6b7280;
-  --color-violet: #7c3aed;
+  /* Background layers */
+  --color-ink:        #0a0a14;
+  --color-ink-card:   #131320;
+  --color-ink-raised: #1a1a2e;
+  --color-ink-hover:  #1f1f38;
+
+  /* Text */
+  --color-bone:       #ededed;
+  --color-muted:      #6b7280;
+  --color-dim:        #3d3d5c;
+
+  /* Single primary accent */
+  --color-violet:     #7c3aed;
   --color-violet-dim: #5b21b6;
-  --color-arena: #dc2626;
-  --color-jade: #10b981;
-  --color-amber: #f59e0b;
+  --color-violet-glow: rgba(124, 58, 237, 0.25);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Rarity tier accents — SPARINGLY */
+  --color-rarity-common:    #9ca3af;
+  --color-rarity-rare:      #3b82f6;
+  --color-rarity-epic:      #a855f7;
+  --color-rarity-legendary: #fbbf24;
 
+  /* Semantic */
+  --color-positive:   #10b981;
+  --color-negative:   #ef4444;
+  --color-arena:      #dc2626;
+  --color-amber:      #f59e0b;
+
+  /* Fonts */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-space-mono), var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radii */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
 }
 
-* {
+/* ─── Reset ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 html {
@@ -34,7 +60,7 @@ html {
 }
 
 body {
-  background-color: #0a0a0f;
+  background-color: #0a0a14;
   color: #ededed;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   min-height: 100vh;
@@ -43,61 +69,225 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* shadcn CSS variables (required by components) */
+/* ─── shadcn CSS variables ─── */
 :root {
   color-scheme: dark;
-  --background: 240 10% 4%;
+  --background: 235 30% 6%;
   --foreground: 0 0% 93%;
-  --card: 240 10% 6%;
+  --card: 235 25% 10%;
   --card-foreground: 0 0% 93%;
-  --popover: 240 10% 6%;
+  --popover: 235 25% 10%;
   --popover-foreground: 0 0% 93%;
   --primary: 263 71% 57%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 240 5% 14%;
+  --secondary: 235 20% 14%;
   --secondary-foreground: 0 0% 93%;
-  --muted: 240 5% 14%;
+  --muted: 235 20% 14%;
   --muted-foreground: 220 9% 46%;
   --accent: 263 71% 57%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5% 14%;
-  --input: 240 5% 14%;
+  --border: 235 20% 14%;
+  --input: 235 20% 14%;
   --ring: 263 71% 57%;
   --radius: 0.5rem;
 }
 
-/* Scrollbar */
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-/* Custom utility classes */
-.hex-clip {
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+/* ─── Typography utilities ─── */
+.font-display {
+  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ─── Card surface system ─── */
+.card-base {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+}
+
+.card-hover {
+  transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.card-hover:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Legacy glass-card — keep for backward compat */
 .glass-card {
-  background: rgba(255,255,255,0.02);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
 }
 
+/* ─── Rarity border system (Parallel TCG-inspired) ─── */
+.rarity-common   { --rarity-color: rgba(156,163,175,0.15); }
+.rarity-rare     { --rarity-color: rgba(59,130,246,0.3); }
+.rarity-epic     { --rarity-color: rgba(168,85,247,0.4); }
+.rarity-legendary { --rarity-color: rgba(251,191,36,0.4); }
+
+.rarity-common,
+.rarity-rare,
+.rarity-epic,
+.rarity-legendary {
+  border-color: var(--rarity-color, rgba(255,255,255,0.06));
+}
+
+/* ─── Agent portrait avatar ─── */
+.agent-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #131320 100%);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-avatar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, transparent 60%);
+}
+
+.agent-avatar-lg {
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+}
+
+/* ─── Card spotlight effect (Aceternity-style, CSS-only) ─── */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle at center, rgba(124,58,237,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 300ms ease;
+  z-index: 0;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* ─── HUD corner brackets (Dark Frontiers-inspired) ─── */
+.hud-corners {
+  position: relative;
+}
+
+.hud-corners::before,
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(124, 58, 237, 0.4);
+  border-style: solid;
+}
+
+.hud-corners::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.hud-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+/* ─── Ticker tape ─── */
 .ticker-tape {
-  animation: ticker 30s linear infinite;
+  animation: ticker 40s linear infinite;
   white-space: nowrap;
 }
 
+.ticker-tape:hover {
+  animation-play-state: paused;
+}
+
+/* ─── ELO progress ring (CSS-only) ─── */
+.elo-ring {
+  position: relative;
+}
+
+/* ─── Status pills ─── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-live {
+  background: rgba(220, 38, 38, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.status-proposed {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.status-settled {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ─── Tabular numbers ─── */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ─── Animations ─── */
 @keyframes ticker {
-  from { transform: translateX(100vw); }
-  to { transform: translateX(-100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideDown {
@@ -110,135 +300,108 @@ body {
   50% { text-shadow: 0 0 20px rgba(124,58,237,0.8), 0 0 40px rgba(124,58,237,0.3); }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease-out; }
-.animate-slide-down { animation: slideDown 0.3s ease-out; }
+@keyframes violetGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(124,58,237,0.2); }
+  50% { box-shadow: 0 0 0 1px rgba(124,58,237,0.5), 0 0 20px rgba(124,58,237,0.15); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-fade-up    { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in    { animation: fadeIn 0.3s ease-out both; }
+.animate-slide-down { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-agent-pulse { animation: agentPulse 3s ease-in-out infinite; }
+.animate-violet-glow { animation: violetGlow 3s ease-in-out infinite; }
 
-/* Smooth scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Staggered entrance helpers */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+
+/* ─── Shimmer loading skeleton ─── */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
-}
-
-/* Styled range slider */
+/* ─── Range slider (custom styled) ─── */
 input[type="range"] {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
   width: 100%;
-  height: 8px;
+  height: 4px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.08);
   outline: none;
   cursor: pointer;
 }
 
-/* Webkit (Chrome, Safari, Edge) */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #10b981;
+  background: #7c3aed;
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(16,185,129,0.4);
-  transition: box-shadow 0.2s ease;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+  transition: box-shadow 150ms ease, transform 150ms ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 16px rgba(16,185,129,0.6);
+  box-shadow: 0 0 0 5px rgba(124,58,237,0.3);
+  transform: scale(1.1);
 }
 
-input[type="range"]::-webkit-slider-runnable-track {
-  background: rgba(255,255,255,0.05);
-  height: 8px;
-  border-radius: 999px;
-}
-
-/* Firefox */
 input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #10b981;
+  background: #7c3aed;
   cursor: pointer;
   border: none;
-  box-shadow: 0 0 8px rgba(16,185,129,0.4);
-  transition: box-shadow 0.2s ease;
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-  box-shadow: 0 0 16px rgba(16,185,129,0.6);
-}
-
-input[type="range"]::-moz-range-track {
-  background: rgba(255,255,255,0.05);
-  height: 8px;
-  border-radius: 999px;
-  border: none;
-}
-
-input[type="range"]::-moz-range-progress {
-  background: #10b981;
-  height: 8px;
-  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
 }
 
 input[type="range"]:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ─── Geometric accent lines (Dark Frontiers HUD) ─── */
+.hud-line-h {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.4), transparent);
+}
+
+.hud-line-v {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(124,58,237,0.4), transparent);
+}
+
+/* ─── Noise texture overlay for depth ─── */
+.noise-overlay::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ─── Legacy hex-clip (keep for any remaining usage) ─── */
+.hex-clip {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }

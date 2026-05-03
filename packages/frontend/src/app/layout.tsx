@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk, Space_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -14,8 +14,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "AgentForge - ERC-7857 iNFT Protocol on 0G Chain",
+  title: "AgentForge — ERC-7857 iNFT Arena on 0G Chain",
   description: "Forge, evolve, and battle intelligent NFT agents with on-chain ELO, genetic lineage, and verifiable AI compute on 0G Chain",
 };
 
@@ -30,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} dark`}>
-      <body className="bg-[#0a0a0f] text-[#ededed] font-sans antialiased">
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} dark`}>
+      <body className="bg-[#0a0a14] text-[#ededed] font-sans antialiased">
         <Providers>{children}</Providers>
         <Toaster />
       </body>
