@@ -1,0 +1,12 @@
+{
+  "name": "agentforge",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --if-present --filter './packages/*' run dev",
+    "build": "pnpm -r --if-present --filter './packages/*' run build",
+    "test": "pnpm -r --if-present --filter './packages/*' run test",
+    "lint": "pnpm -r --if-present --filter './packages/*' run lint",
+    "typecheck": "pnpm -r --if-present --filter './packages/*' run typecheck"
+  }
+}

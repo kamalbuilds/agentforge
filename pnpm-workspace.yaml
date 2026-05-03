@@ -1,0 +1,6 @@
+packages:
+  - packages/contracts
+  - packages/frontend
+  - packages/agent
+  - packages/gateway
+  - packages/shared
