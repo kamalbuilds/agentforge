@@ -374,8 +374,9 @@ function HistoryTab() {
       try {
         const latest = await publicClient.getBlockNumber();
         const results: SettledMatch[] = [];
+        const MAX_PAGES = 10;
         let toBlock = latest;
-        while (toBlock > 0n && results.length < 100) {
+        for (let page = 0; page < MAX_PAGES && toBlock > 0n && results.length < 100; page++) {
           const fromBlock = toBlock > BLOCK_PAGE ? toBlock - BLOCK_PAGE : 0n;
           const logs = await publicClient.getLogs({ address: addresses[CHAIN_ID].Arena, event: MATCH_SETTLED_EVENT, fromBlock, toBlock });
           for (const log of [...logs].reverse()) {
@@ -386,7 +387,7 @@ function HistoryTab() {
           toBlock = fromBlock - 1n;
         }
         setMatches(results);
-      } catch { /* RPC error */ } finally { setLoading(false); }
+      } catch (err) { console.error("[arena] history fetch failed:", err); } finally { setLoading(false); }
     })();
   }, [publicClient]);
 
