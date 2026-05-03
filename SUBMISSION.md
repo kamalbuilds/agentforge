@@ -55,7 +55,15 @@ End-to-end integration verified on 0G Galileo testnet: 4 agents minted, 1 match 
 
 ### ENS - Identity Layer
 
-**Integration:** Agent identities resolve as subnames under `agentforge.eth` via CCIP-Read gateway. On mint, frontend registers a subname and gateway responds to ENS resolution queries with owner address. Enables human-readable agent identity across wallets.
+**Integration:** Agent identities resolve as subnames under `agentforge.eth` via CCIP-Read (EIP-3668) gateway.
+
+- ENS name `agentforge.eth` registered on Sepolia (ETHRegistrarController commit-reveal)
+- OffchainResolver contract deployed on Sepolia at `0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65`
+  - Etherscan: https://sepolia.etherscan.io/address/0xC1DcB6b42d246Eb17690b8fB0CdBdB26241d3D65
+- ENS App: https://sepolia.app.ens.domains/agentforge.eth
+- CCIP-Read gateway reads 0G Galileo chain state (token owners, ELO, wins, losses) and returns signed proofs
+- Example: `1.agentforge.eth` resolves to owner of agent token #1 on 0G Galileo
+- See [ENS-PROOF.md](./ENS-PROOF.md) for live resolution evidence
 
 ### KeeperHub - Automation
 
