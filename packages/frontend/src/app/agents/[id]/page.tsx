@@ -1,10 +1,19 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { Nav } from "@/components/nav";
 import { LineageTree } from "@/components/lineage-tree";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -14,11 +23,135 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Swords, Dna, ArrowLeft, Cpu, ExternalLink } from "lucide-react";
-import { useReadContract } from "wagmi";
+import { useReadContract, usePublicClient, useWriteContract, useAccount } from "wagmi";
+import { parseEther, formatEther } from "viem";
 import { AgentINFTAbi, ArenaAbi, addresses } from "@agentforge/shared";
+import { toast } from "sonner";
 import type { Abi } from "viem";
 
 const CHAIN_ID = 16602 as const;
+
+const BLOCK_PAGE = 1000n;
+
+const MATCH_SETTLED_EVENT = {
+  type: "event" as const,
+  name: "MatchSettled",
+  inputs: [
+    { name: "matchId",      type: "uint256" as const, indexed: true },
+    { name: "winner",       type: "uint256" as const, indexed: true },
+    { name: "loser",        type: "uint256" as const, indexed: true },
+    { name: "winnerNewElo", type: "uint32"  as const, indexed: false },
+    { name: "loserNewElo",  type: "uint32"  as const, indexed: false },
+    { name: "payout",       type: "uint256" as const, indexed: false },
+    { name: "resultHash",   type: "bytes32" as const, indexed: false },
+  ],
+} as const;
+
+interface MatchRecord {
+  matchId: bigint;
+  opponent: bigint;
+  result: "win" | "loss";
+  newElo: number;
+  blockNumber: bigint;
+}
+
+function useMatchHistory(tokenId: bigint) {
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
+  const [matches, setMatches] = useState<MatchRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!publicClient) return;
+    setLoading(true);
+    (async () => {
+      try {
+        const latest = await publicClient.getBlockNumber();
+        const results: MatchRecord[] = [];
+        let toBlock = latest;
+        while (toBlock > 0n && results.length < 50) {
+          const fromBlock = toBlock > BLOCK_PAGE ? toBlock - BLOCK_PAGE : 0n;
+          const [wLogs, lLogs] = await Promise.all([
+            publicClient.getLogs({ address: addresses[CHAIN_ID].Arena, event: MATCH_SETTLED_EVENT, args: { winner: tokenId }, fromBlock, toBlock }),
+            publicClient.getLogs({ address: addresses[CHAIN_ID].Arena, event: MATCH_SETTLED_EVENT, args: { loser: tokenId }, fromBlock, toBlock }),
+          ]);
+          for (const log of wLogs) {
+            const a = log.args as { matchId: bigint; winner: bigint; loser: bigint; winnerNewElo: number };
+            results.push({ matchId: a.matchId, opponent: a.loser, result: "win", newElo: Number(a.winnerNewElo), blockNumber: log.blockNumber ?? 0n });
+          }
+          for (const log of lLogs) {
+            const a = log.args as { matchId: bigint; winner: bigint; loser: bigint; loserNewElo: number };
+            results.push({ matchId: a.matchId, opponent: a.winner, result: "loss", newElo: Number(a.loserNewElo), blockNumber: log.blockNumber ?? 0n });
+          }
+          if (fromBlock === 0n) break;
+          toBlock = fromBlock - 1n;
+        }
+        results.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : -1));
+        setMatches(results);
+      } catch { /* RPC error */ } finally { setLoading(false); }
+    })();
+  }, [publicClient, tokenId]);
+
+  return { matches, loading };
+}
+
+function ChallengeDialog({ myAgentId, open, onOpenChange }: { myAgentId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: CHAIN_ID });
+  const { writeContractAsync } = useWriteContract();
+  const [stakeEth, setStakeEth]   = useState("0.01");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handlePropose = async () => {
+    if (!address)      { toast.error("Connect wallet first"); return; }
+    if (!publicClient) { toast.error("No RPC client"); return; }
+    const stakeWei = parseEther(stakeEth || "0.01");
+    setIsLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: addresses[CHAIN_ID].Arena,
+        abi: ArenaAbi as Abi,
+        functionName: "proposeMatch",
+        args: [BigInt(address), BigInt(myAgentId), stakeWei],
+        value: stakeWei,
+        chainId: CHAIN_ID,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      toast.success("Challenge proposed! Waiting for acceptance.");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Propose failed");
+    } finally { setIsLoading(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#0d0d1a] border border-white/[0.08] text-[#ededed] max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-[#ededed]" style={{ fontFamily: "var(--font-space-grotesk)" }}>Challenge Agent #{myAgentId}</DialogTitle>
+          <DialogDescription className="text-white/40 text-xs">Enter a stake amount. The opponent must match your stake to accept.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">Your Agent ID</Label>
+            <p className="text-sm text-[#ededed] font-mono">You need to own an agent to challenge. Enter your token ID.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">Stake (0G)</Label>
+            <Input placeholder="0.01" value={stakeEth} onChange={(e) => setStakeEth(e.target.value)} className="bg-white/[0.03] border-white/[0.08] focus:border-[#dc2626]/50 text-[#ededed] rounded-xl" />
+            <p className="text-xs text-white/25 font-mono">
+              {stakeEth && !isNaN(Number(stakeEth)) ? `${formatEther(parseEther(stakeEth))} 0G will be locked` : "Enter a valid amount"}
+            </p>
+          </div>
+          <Link href={`/arena`}>
+            <Button className="w-full font-semibold py-3 rounded-xl text-white" style={{ background: "#dc2626" }}>
+              Go to Arena to Challenge
+            </Button>
+          </Link>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function getRarity(elo: number) {
   if (elo >= 1800) return { label: "legendary", color: "#fbbf24" };
@@ -34,6 +167,8 @@ export default function AgentDetailPage({
 }) {
   const { id } = use(params);
   const tokenId = BigInt(id);
+  const [challengeOpen, setChallengeOpen] = useState(false);
+  const { matches: matchHistory, loading: matchLoading } = useMatchHistory(tokenId);
 
   const { data: owner, isLoading: ownerLoading } = useReadContract({ address: addresses[CHAIN_ID].AgentINFT, abi: AgentINFTAbi as Abi, functionName: "ownerOf",      args: [tokenId], chainId: CHAIN_ID });
   const { data: elo }        = useReadContract({ address: addresses[CHAIN_ID].Arena,     abi: ArenaAbi      as Abi, functionName: "getElo",     args: [tokenId], chainId: CHAIN_ID });
@@ -171,7 +306,7 @@ export default function AgentDetailPage({
 
                   {/* CTAs */}
                   <div className="flex gap-2">
-                    <Link href="/breed">
+                    <Link href={`/breed?parentB=${id}`}>
                       <Button
                         className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
                         style={{
@@ -185,18 +320,17 @@ export default function AgentDetailPage({
                         Breed
                       </Button>
                     </Link>
-                    <Link href="/arena">
-                      <Button
-                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-[1px]"
-                        style={{
-                          background: "#dc2626",
-                          fontFamily: "var(--font-space-grotesk), sans-serif",
-                        }}
-                      >
-                        <Swords className="w-3.5 h-3.5 mr-1.5" />
-                        Challenge
-                      </Button>
-                    </Link>
+                    <Button
+                      onClick={() => setChallengeOpen(true)}
+                      className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-[1px]"
+                      style={{
+                        background: "#dc2626",
+                        fontFamily: "var(--font-space-grotesk), sans-serif",
+                      }}
+                    >
+                      <Swords className="w-3.5 h-3.5 mr-1.5" />
+                      Challenge
+                    </Button>
                   </div>
                 </div>
 
@@ -305,7 +439,7 @@ export default function AgentDetailPage({
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.05] hover:bg-white/[0.01]">
-                  {["Match", "Opponent", "Result", "ELO Change", "Block"].map((h) => (
+                  {["Match", "Opponent", "Result", "New ELO", "Block"].map((h) => (
                     <TableHead
                       key={h}
                       className="text-[10px] font-mono uppercase tracking-widest"
@@ -317,50 +451,38 @@ export default function AgentDetailPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <MatchHistoryRows tokenId={tokenId} wins={winsVal} losses={lossVal} />
+                {matchLoading ? (
+                  <TableRow className="border-white/[0.05]">
+                    <TableCell colSpan={5} className="text-center py-10">
+                      <p className="text-white/25 text-sm font-mono">Loading match history...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : matchHistory.length === 0 ? (
+                  <TableRow className="border-white/[0.05]">
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <p className="text-white/25 text-sm font-mono">No matches played yet.</p>
+                    </TableCell>
+                  </TableRow>
+                ) : matchHistory.map((m) => (
+                  <TableRow key={m.matchId.toString()} className="border-white/[0.05] hover:bg-white/[0.02]">
+                    <TableCell className="font-mono text-sm text-[#ededed]">#{m.matchId.toString()}</TableCell>
+                    <TableCell className="font-mono text-sm text-[#ededed]">
+                      <Link href={`/agents/${m.opponent.toString()}`} className="text-[#7c3aed] hover:underline">#{m.opponent.toString()}</Link>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm" style={{ color: m.result === "win" ? "#10b981" : "#ef4444" }}>
+                      {m.result.toUpperCase()}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-[#ededed]">{m.newElo}</TableCell>
+                    <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>{m.blockNumber.toString()}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
         </section>
       </main>
+
+      <ChallengeDialog myAgentId={id} open={challengeOpen} onOpenChange={setChallengeOpen} />
     </div>
-  );
-}
-
-function MatchHistoryRows({
-  tokenId,
-  wins,
-  losses,
-}: {
-  tokenId: bigint;
-  wins: number;
-  losses: number;
-}) {
-  if (wins + losses === 0) {
-    return (
-      <TableRow className="border-white/[0.05]">
-        <TableCell colSpan={5} className="text-center py-12">
-          <p className="text-white/25 text-sm font-mono">No matches played yet.</p>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  return (
-    <TableRow className="border-white/[0.05]">
-      <TableCell colSpan={5} className="text-center py-8">
-        <p className="text-white/30 text-sm font-mono">
-          {wins + losses} match(es) recorded · W:{wins} L:{losses} ·{" "}
-          <a
-            href={`https://chainscan-galileo.0g.ai/address/${addresses[CHAIN_ID].Arena}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#7c3aed] hover:underline"
-          >
-            View on 0G Explorer
-          </a>
-        </p>
-      </TableCell>
-    </TableRow>
   );
 }
