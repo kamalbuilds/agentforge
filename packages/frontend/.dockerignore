@@ -1,0 +1,17 @@
+node_modules
+.next
+dist
+out
+build
+cache
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+src
+tsconfig.json
+jest.config.js
+next.config.js

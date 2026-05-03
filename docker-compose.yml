@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # AXL Node - P2P messaging layer for agents
+  axl-node:
+    build:
+      context: .
+      dockerfile: ./infra/axl/Dockerfile
+    container_name: agentforge-axl
+    ports:
+      - "9001:9001"  # P2P port
+      - "9002:9002"  # HTTP API port
+    volumes:
+      - ./infra/axl/private.pem:/app/private.pem
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Gateway - CCIP + ENS + KeeperHub + Uniswap bridge
+  gateway:
+    build:
+      context: .
+      dockerfile: ./packages/gateway/Dockerfile
+    container_name: agentforge-gateway
+    depends_on:
+      axl-node:
+        condition: service_healthy
+    ports:
+      - "8787:8787"
+    environment:
+      - NODE_ENV=development
+      - PORT=8787
+      - LOG_LEVEL=info
+      - AXL_NODE_URL=http://axl-node:9002
+      - CCIP_SIGNER_KEY=${CCIP_SIGNER_KEY}
+      - KEEPERHUB_API_KEY=${KEEPERHUB_API_KEY}
+      - KEEPERHUB_BASE_URL=${KEEPERHUB_API_URL:-https://api.keeperhub.com}
+      - UNISWAP_API_KEY=${UNISWAP_API_KEY}
+      - UNISWAP_BASE_URL=${UNISWAP_API_URL:-https://trade-api.gateway.uniswap.org}
+      - RPC_URL_0G=${ZG_RPC_URL}
+      - RPC_URL_SEPOLIA=${SEPOLIA_RPC_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8787/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Agent Arena Trader - Strategy=trader, TokenId=2
+  agent-arena:
+    build:
+      context: .
+      dockerfile: ./packages/agent/Dockerfile
+    container_name: agentforge-arena-trader
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=info
+      - STRATEGY=trader
+      - AGENT_TOKEN_ID=2
+      - AXL_NODE_URL=http://axl-node:9002
+      - GATEWAY_URL=http://gateway:8787
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
+      - ZG_RPC_URL=${ZG_RPC_URL}
+      - ZG_CHAIN_ID=${ZG_CHAIN_ID}
+      - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+    restart: unless-stopped
+
+  # Agent Arena Debater - Strategy=debater, TokenId=3
+  agent-arena-2:
+    build:
+      context: .
+      dockerfile: ./packages/agent/Dockerfile
+    container_name: agentforge-arena-debater
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=info
+      - STRATEGY=debater
+      - AGENT_TOKEN_ID=3
+      - AXL_NODE_URL=http://axl-node:9002
+      - GATEWAY_URL=http://gateway:8787
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
+      - ZG_RPC_URL=${ZG_RPC_URL}
+      - ZG_CHAIN_ID=${ZG_CHAIN_ID}
+      - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+    restart: unless-stopped
+
+  # Breeding Operator - Handles genesis + breeding finalization
+  breeding-operator:
+    build:
+      context: .
+      dockerfile: ./packages/agent/Dockerfile
+    container_name: agentforge-breeding
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=info
+      - BREEDING_OPERATOR=true
+      - AXL_NODE_URL=http://axl-node:9002
+      - GATEWAY_URL=http://gateway:8787
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
+      - ZG_RPC_URL=${ZG_RPC_URL}
+      - ZG_CHAIN_ID=${ZG_CHAIN_ID}
+      - ZG_STORAGE_INDEXER=${ZG_STORAGE_INDEXER}
+      - ZG_COMPUTE_PROVIDER=${ZG_COMPUTE_PROVIDER}
+      - AGENT_OPERATOR_KEY=${AGENT_OPERATOR_KEY}
+    restart: unless-stopped
+
+  # Frontend - Next.js UI
+  frontend:
+    build:
+      context: .
+      dockerfile: ./packages/frontend/Dockerfile
+    container_name: agentforge-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    name: agentforge
