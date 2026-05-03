@@ -125,6 +125,25 @@ tail -f /tmp/agentforge-frontend.log
 tail -f /tmp/agentforge-agent.log
 ```
 
+### Demo Mode (No AXL Nodes Required)
+
+For local demos without running AXL nodes, use the demo match resolver to auto-resolve any on-chain match:
+
+```bash
+# Resolve a specific match by ID
+tsx scripts/run-match.ts 1
+
+# Watch daemon: auto-resolve new MatchProposed events every 10s
+tsx scripts/run-match.ts --watch
+```
+
+Run via gateway's tsx (which has viem/dotenv in scope):
+```bash
+NODE_PATH=packages/gateway/node_modules packages/gateway/node_modules/.bin/tsx scripts/run-match.ts --watch
+```
+
+The resolver performs real on-chain transactions: it accepts the match (paying the stake from the operator wallet) and reports the result with a genuine ECDSA operator signature. The winner is selected via the standard ELO expected-score formula. The full P2P move-by-move AXL flow runs via `make compose-up`.
+
 ### Full Stack (Docker)
 
 For a production-like setup with AXL node included:
